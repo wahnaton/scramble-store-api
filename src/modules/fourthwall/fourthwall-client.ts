@@ -64,15 +64,15 @@ export class FourthwallClient {
   }
 
   async listProducts(): Promise<FourthwallProduct[]> {
-    const res = await this.request<{ products: FourthwallProduct[] }>(
+    const response = await this.request<{ products: FourthwallProduct[] }>(
       "/products"
     )
-    return res.products
+    return response.products
   }
 
   async retrieveProduct(id: string): Promise<FourthwallProduct> {
     return this.request<{ product: FourthwallProduct }>(`/products/${id}`).then(
-      (r) => r.product
+      (responseBody) => responseBody.product
     )
   }
 
@@ -84,58 +84,58 @@ export class FourthwallClient {
     items: CreateCartItem[],
     currency?: string
   ): Promise<FourthwallCart> {
-    const body: any = { items }
+    const requestBody: any = { items }
     if (currency) {
-      body.currency = currency
+      requestBody.currency = currency
     }
     return this.request<{ cart: FourthwallCart }>("/carts", {
       method: "POST",
-      body,
-    }).then((r) => r.cart)
+      body: requestBody,
+    }).then((responseBody) => responseBody.cart)
   }
 
   private async request<T>(
     path: string,
-    opts: RequestOptions = {}
+    options: RequestOptions = {}
   ): Promise<T> {
-    const url = new URL(this.baseUrl + path)
-    url.searchParams.set("storefront_token", this.storefrontToken)
-    if (opts.query) {
-      for (const [k, v] of Object.entries(opts.query)) {
-        if (v !== undefined) {
-          url.searchParams.set(k, String(v))
+    const requestUrl = new URL(this.baseUrl + path)
+    requestUrl.searchParams.set("storefront_token", this.storefrontToken)
+    if (options.query) {
+      for (const [key, value] of Object.entries(options.query)) {
+        if (value !== undefined) {
+          requestUrl.searchParams.set(key, String(value))
         }
       }
     }
 
-    const init: RequestInit = {
-      method: opts.method || "GET",
+    const requestInit: RequestInit = {
+      method: options.method || "GET",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
     }
-    if (opts.body !== undefined) {
-      init.body = JSON.stringify(opts.body)
+    if (options.body !== undefined) {
+      requestInit.body = JSON.stringify(options.body)
     }
 
-    const response = await fetch(url.toString(), init)
-    let payload: any
+    const response = await fetch(requestUrl.toString(), requestInit)
+    let responseBody: any
     try {
-      payload = await response.json()
+      responseBody = await response.json()
     } catch {
-      payload = undefined
+      responseBody = undefined
     }
 
     if (!response.ok) {
       const message =
-        payload?.message ||
-        payload?.error ||
+        responseBody?.message ||
+        responseBody?.error ||
         `Fourthwall request failed: ${response.status}`
       throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, message)
     }
 
-    return payload as T
+    return responseBody as T
   }
 }
 
