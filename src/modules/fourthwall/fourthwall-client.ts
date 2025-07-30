@@ -64,10 +64,32 @@ export class FourthwallClient {
   }
 
   async listProducts(): Promise<FourthwallProduct[]> {
-    const response = await this.request<{ products: FourthwallProduct[] }>(
-      "/products"
-    )
-    return response.products
+    const cols = await this.request<{ results: any[] }>("/collections")
+    const results: any[] = []
+
+    for (const c of cols?.results || []) {
+      const col = await this.request<{ results: any[] }>(
+        `/collections/${encodeURIComponent(c.slug)}/products`
+      )
+      for (const p of col?.results || []) results.push(p)
+    }
+
+    const mapped: FourthwallProduct[] = results.map((p: any) => ({
+      id: p.id,
+      title: p.name,
+      description: p.description,
+      handle: p.slug,
+      images: (p.images || []).map((im: any) => ({ url: im.url })).filter((i: any) => !!i.url),
+      variants: (p.variants || []).map((v: any) => ({
+        id: v.id,
+        title: v.name,
+        price: v.price,
+        sku: v.sku,
+        availableForSale: v.availableForSale,
+      })),
+    }))
+
+    return mapped
   }
 
   async retrieveProduct(id: string): Promise<FourthwallProduct> {

@@ -13,6 +13,8 @@ coverage
 
 ./tsconfig.tsbuildinfo
 medusa-db.sql
+medusa-db.sqlite
+medusa-db.sqlite-journal
 build
 .cache
 

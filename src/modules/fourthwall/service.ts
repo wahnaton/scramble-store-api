@@ -1,64 +1,114 @@
 import { Lifetime } from "awilix"
 import { MedusaError } from "@medusajs/utils"
+import type { IProductModuleService } from "@medusajs/framework/types"
 import { FourthwallClient, fourthwallClient, FourthwallProduct } from "./fourthwall-client"
 
 type InjectedDependencies = {
   logger: any
+  product: IProductModuleService
 }
 
-export default class FourthwallService {
+export default class FourthwallProductSyncService {
+  static identifier = "fourthwall"
+  static moduleName = "fourthwall"
   static LIFE_TIME = Lifetime.SCOPED
 
-  protected readonly client_: FourthwallClient
+  protected readonly fourthwallClient_: FourthwallClient
   protected readonly logger_: any
+  protected readonly productService_: IProductModuleService
 
-  // TODO: Move products_ to persistent storage using shared `catalog_products` and `catalog_variants` tables in Neon Postgres
-  private products_: FourthwallProduct[] = []
-
-  constructor({ logger }: InjectedDependencies) {
-    this.client_ = fourthwallClient
+  constructor({ logger, product }: InjectedDependencies) {
+    this.fourthwallClient_ = fourthwallClient
     this.logger_ = logger
+    this.productService_ = product
   }
 
-  async syncAll(): Promise<void> {
+  async syncProducts(): Promise<void> {
     try {
-      this.products_ = await this.client_.listProducts()
-      this.logger_.info(`[FourthwallService] Synced ${this.products_.length} products`)
-      // TODO: Syncing should eventually upsert products and variants into shared `catalog_products` and `catalog_variants` tables in Neon Postgres
+      const fourthwallProducts = await this.fourthwallClient_.listProducts()
+
+      for (const fourthwallProduct of fourthwallProducts) {
+        const productDTO = this.toCreateProductDTO_(fourthwallProduct)
+
+        const existing = await this.productService_.listProducts(
+          { external_id: [fourthwallProduct.id] },
+          { relations: ["variants", "options"] }
+        )
+
+        if (existing.length === 0) {
+          await this.productService_.createProducts(productDTO)
+          this.logger_.info(`[FourthwallService] Created product: ${productDTO.title}`)
+          continue
+        }
+
+        const existingProduct = existing[0]
+        await this.productService_.updateProducts(existingProduct.id, {
+          title: productDTO.title,
+          handle: productDTO.handle,
+          description: productDTO.description,
+          status: productDTO.status,
+          thumbnail: productDTO.thumbnail,
+          external_id: productDTO.external_id,
+          metadata: productDTO.metadata,
+        })
+
+        const current = await this.productService_.listProductVariants({ product_id: [existingProduct.id] })
+        const byExt = new Map(
+          current
+            .filter((variant) => variant.metadata && typeof variant.metadata.external_id === "string")
+            .map((variant) => [variant.metadata!.external_id, variant])
+        )
+        const bySku = new Map(current.filter((v) => !!v.sku).map((v) => [v.sku!, v]))
+
+        const upserts = (productDTO.variants ?? []).map((variant: any) => {
+          const ext = variant.metadata?.external_id
+          const existing = (ext ? byExt.get(ext) : undefined) || (variant.sku ? bySku.get(variant.sku) : undefined)
+          return {
+            id: existing?.id,
+            product_id: existingProduct.id,
+            title: variant.title,
+            sku: variant.sku,
+            metadata: { external_id: ext },
+          }
+        })
+
+        if (upserts.length) {
+          await this.productService_.upsertProductVariants(upserts)
+        }
+
+        this.logger_.info(`[FourthwallService] Upserted product: ${productDTO.title}`)
+      }
+
+      this.logger_.info(`[FourthwallService] Synced ${fourthwallProducts.length} products`)
     } catch (error) {
       this.logger_.error("[FourthwallService] Sync failed", error)
       throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "Failed to sync Fourthwall products")
     }
   }
 
-  async getList(): Promise<FourthwallProduct[]> {
-    // TODO: Currently returns from memory, should later query from shared `catalog_products` in Neon Postgres
-    return this.products_
+  private slugify_(s?: string) {
+    return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
   }
 
-  async getById(id: string): Promise<FourthwallProduct> {
-    // TODO: Replace with lookup from shared `catalog_products` table in Neon Postgres
-    const match = this.products_.find((product) => product.id === id || product.handle === id)
-    if (!match) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product not found")
+  private toCreateProductDTO_(fourthwallProduct: FourthwallProduct) {
+    const title = fourthwallProduct.title ?? "Untitled"
+    const handle = fourthwallProduct.handle ?? this.slugify_(title)
+    const images: string[] = fourthwallProduct.images.map((image) => image.url).filter(Boolean)
+
+    return {
+      title,
+      handle,
+      description: fourthwallProduct.description ?? "",
+      status: "published" as const,
+      thumbnail: images[0],
+      external_id: fourthwallProduct.id,
+      variants: fourthwallProduct.variants.map((variant) => ({
+        title: variant.title ?? "Default",
+        sku: variant.sku,
+        options: {} as Record<string, string>,
+        metadata: { external_id: variant.id },
+      })),
+      metadata: { fourthwall_handle: fourthwallProduct.handle ?? handle },
     }
-    return match
-  }
-
-  async createCheckoutSession(
-    items: { variant_id: string; quantity: number }[]
-  ): Promise<{ redirect_url: string }> {
-    // TODO: Persist created cartId + items to Neon Postgres, referencing shared `catalog_products` and `catalog_variants` tables for saved/abandoned carts
-    // TODO: Reuse existing open cart if available, using shared Neon storage
-    const cart = await this.client_.createCart(
-      items.map((item) => ({
-        variant_id: item.variant_id,
-        quantity: item.quantity,
-      }))
-    )
-
-    const redirect_url = `https://checkout.playscramblegame.com/checkout/?cartCurrency=${cart.currency}&cartId=${cart.id}`
-
-    return { redirect_url }
   }
 }

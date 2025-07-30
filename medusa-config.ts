@@ -1,4 +1,5 @@
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { FOURTHWALL_MODULE } from "./src/modules/fourthwall"
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
@@ -11,6 +12,12 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    }
-  }
+    },
+  },
+  modules: {
+    [FOURTHWALL_MODULE]: {
+      resolve: "./src/modules/fourthwall",
+      dependencies: ["product"],
+    },
+  },
 })
