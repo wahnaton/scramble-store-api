@@ -2,9 +2,12 @@ import { Lifetime } from "awilix"
 import { MedusaError } from "@medusajs/utils"
 import type { IProductModuleService } from "@medusajs/framework/types"
 import { FourthwallClient, fourthwallClient, FourthwallProduct } from "./fourthwall-client"
+import { Modules } from "@medusajs/framework/utils"
+import { Logger } from "@medusajs/medusa"
+import { container } from "@medusajs/framework"
 
 type InjectedDependencies = {
-  logger: any
+  logger: Logger
   product: IProductModuleService
 }
 
@@ -29,14 +32,25 @@ export default class FourthwallProductSyncService {
 
       for (const fourthwallProduct of fourthwallProducts) {
         const productDTO = this.toCreateProductDTO_(fourthwallProduct)
-
         const existing = await this.productService_.listProducts(
           { external_id: [fourthwallProduct.id] },
           { relations: ["variants", "options"] }
         )
 
         if (existing.length === 0) {
-          await this.productService_.createProducts(productDTO)
+          var createdProduct = await this.productService_.createProducts(productDTO)
+          const link = container.resolve("link")
+
+          await link.create({
+              [Modules.PRODUCT]: {
+                product_id: createdProduct.id,
+              },
+              [Modules.SALES_CHANNEL]: {
+                // Hardcoded default sales channel
+                sales_channel_id: "sc_01K05XJND67JDXJY7DS38Y03TE",
+              },
+            })
+
           this.logger_.info(`[FourthwallService] Created product: ${productDTO.title}`)
           continue
         }
