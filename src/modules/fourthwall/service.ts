@@ -1,6 +1,6 @@
 import { Lifetime } from "awilix"
 import { MedusaError } from "@medusajs/utils"
-import type { IProductModuleService } from "@medusajs/framework/types"
+import type { IProductModuleService, ISalesChannelModuleService } from "@medusajs/framework/types"
 import { FourthwallClient, fourthwallClient, FourthwallProduct } from "./fourthwall-client"
 import { Modules } from "@medusajs/framework/utils"
 import { Logger } from "@medusajs/medusa"
@@ -9,6 +9,7 @@ import { container } from "@medusajs/framework"
 type InjectedDependencies = {
   logger: Logger
   product: IProductModuleService
+  sales_channel: ISalesChannelModuleService
 }
 
 export default class FourthwallProductSyncService {
@@ -19,11 +20,13 @@ export default class FourthwallProductSyncService {
   protected readonly fourthwallClient_: FourthwallClient
   protected readonly logger_: any
   protected readonly productService_: IProductModuleService
+  protected readonly salesChannelService_: ISalesChannelModuleService
 
-  constructor({ logger, product }: InjectedDependencies) {
+  constructor({ logger, product, sales_channel }: InjectedDependencies) {
     this.fourthwallClient_ = fourthwallClient
     this.logger_ = logger
     this.productService_ = product
+    this.salesChannelService_ = sales_channel
   }
 
   async syncProducts(): Promise<void> {
@@ -37,9 +40,19 @@ export default class FourthwallProductSyncService {
           { relations: ["variants", "options"] }
         )
 
+        
+
         if (existing.length === 0) {
           var createdProduct = await this.productService_.createProducts(productDTO)
           const link = container.resolve("link")
+
+          var salesChannels = await this.salesChannelService_.listSalesChannels({
+            name: "Default Sales Channel"
+          })
+
+          var defaultSalesChannel = salesChannels.at(0)?.id
+
+          this.logger_.info(`defaultSalesChannel: ${defaultSalesChannel}`)
 
           await link.create({
               [Modules.PRODUCT]: {
@@ -47,7 +60,7 @@ export default class FourthwallProductSyncService {
               },
               [Modules.SALES_CHANNEL]: {
                 // Hardcoded default sales channel
-                sales_channel_id: "sc_01K05XJND67JDXJY7DS38Y03TE",
+                sales_channel_id: defaultSalesChannel || "sc_01K05XJND67JDXJY7DS38Y03TE",
               },
             })
 

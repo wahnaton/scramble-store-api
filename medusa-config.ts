@@ -19,7 +19,7 @@ module.exports = defineConfig({
   modules: {
     [FOURTHWALL_MODULE]: {
       resolve: "./src/modules/fourthwall",
-      dependencies: [Modules.PRODUCT],
+      dependencies: [Modules.PRODUCT, Modules.SALES_CHANNEL],
     },
   },
 })
