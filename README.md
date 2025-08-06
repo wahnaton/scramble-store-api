@@ -13,12 +13,6 @@ Ping:
 curl http://localhost:9000/health
 ```
 
-Products:
-```
-curl http://localhost:9000/store/products \
-  -H "x-publishable-api-key: <your-key>"
-```
-
 Fourthwall Sync API:
 ```
 TOKEN=$(curl -s -X POST http://localhost:9000/auth/user/emailpass \
@@ -28,6 +22,12 @@ TOKEN=$(curl -s -X POST http://localhost:9000/auth/user/emailpass \
 curl -X POST http://localhost:9000/admin/fourthwall/sync-products \
   -H "Authorization: Bearer $TOKEN"
   ```
+
+Products:
+```
+curl http://localhost:9000/store/products \
+  -H "x-publishable-api-key: <your-key>"
+```
 
 Printful:
 ```
