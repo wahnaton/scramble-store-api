@@ -1,5 +1,3 @@
-
-
 import { MedusaError } from "@medusajs/utils"
 
 export interface FourthwallVariant {

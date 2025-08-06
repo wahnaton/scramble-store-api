@@ -1,8 +1,12 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import FourthwallProductSyncService from "../../../../modules/fourthwall/service"
+import { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import { syncProductsFromFourthwall } from "../../../../workflows/sync-products-from-fourthwall"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const svc = req.scope.resolve("fourthwall") as FourthwallProductSyncService
-  await svc.syncProducts()
-  res.status(204).end()
+  const { result } = await syncProductsFromFourthwall.run({
+    container: req.scope,
+  })
+
+  const { upsertedCount } = result
+
+  res.status(200).json({ upsertedCount })
 }
