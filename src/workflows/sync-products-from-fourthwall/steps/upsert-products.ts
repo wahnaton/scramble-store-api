@@ -3,7 +3,7 @@ import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export type UpsertProductsInput = {
-  upserts: ProductTypes.UpsertProductDTO[]
+  upserts: ProductTypes.UpsertProductDTO[],
 }
 
 export const upsertProductsStep = createStep(

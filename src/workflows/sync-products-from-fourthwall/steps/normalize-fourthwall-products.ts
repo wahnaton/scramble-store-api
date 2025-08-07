@@ -6,6 +6,7 @@ import { slugify } from "../../../utils/string-utils"
 export type NormalizeFourthwallProductsInput = {
   fourthwallProducts: FourthwallProduct[]
   externalIdToProductIdMap: Record<string, string>
+  externalVariantIdToVariantIdMap: Record<string, string>
 }
 
 export const normalizeFourthwallProductsStep = createStep(
@@ -27,8 +28,8 @@ export const normalizeFourthwallProductsStep = createStep(
         external_id: fwProduct.id,
         variants: fwProduct.variants.map((variant) => {
           const v: ProductTypes.UpsertProductVariantDTO = {
+            id: input.externalVariantIdToVariantIdMap[variant.id],
             title: variant.title ?? "Default",
-            options: {} as Record<string, string>,
             metadata: { external_id: variant.id },
           }
           if (variant.sku) v.sku = variant.sku

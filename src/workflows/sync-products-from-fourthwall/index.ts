@@ -10,8 +10,10 @@ import { upsertProductsStep } from "./steps/upsert-products"
 export const syncProductsFromFourthwall = createWorkflow("sync-products-from-fourthwall",
   () => {
     const fourthwallProducts = fetchFourthwallProductsStep()
-    const externalIdToProductIdMap = mapExistingProductIdsStep({ fourthwallProducts })
-    const upserts = normalizeFourthwallProductsStep({ fourthwallProducts, externalIdToProductIdMap })
+    const mapExistingProductIdsOutput = mapExistingProductIdsStep({ fourthwallProducts })
+    const externalIdToProductIdMap = mapExistingProductIdsOutput.externalIdToProductIdMap
+    const externalVariantIdToVariantIdMap = mapExistingProductIdsOutput.externalVariantIdToVariantIdMap
+    const upserts = normalizeFourthwallProductsStep({ fourthwallProducts, externalIdToProductIdMap, externalVariantIdToVariantIdMap })
 
     const products = upsertProductsStep({ upserts })
     const productIds = transform({ products }, (data) => data.products.map((p: ProductDTO) => p.id))

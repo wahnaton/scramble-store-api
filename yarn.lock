@@ -2028,6 +2028,13 @@
   dependencies:
     ioredis "^5.4.1"
 
+"@medusajs/cache-redis@^2.8.8":
+  version "2.8.8"
+  resolved "https://registry.yarnpkg.com/@medusajs/cache-redis/-/cache-redis-2.8.8.tgz#9dcee8ea3002375601e5da4d940ce4ae3d1c399e"
+  integrity sha512-uQgbdWIkGGPltI7LI0b/KZheQ3KYNvjw57w07NuludhrxxOQRgCvwru8Xd0wsF8k7mb9vyv1ll/fFW12GRwBHQ==
+  dependencies:
+    ioredis "^5.4.1"
+
 "@medusajs/cart@2.8.7":
   version "2.8.7"
   resolved "https://registry.npmjs.org/@medusajs/cart/-/cart-2.8.7.tgz"
@@ -2133,6 +2140,14 @@
   version "2.8.7"
   resolved "https://registry.npmjs.org/@medusajs/event-bus-redis/-/event-bus-redis-2.8.7.tgz"
   integrity sha512-awfYyu+slG9ftb11g6R+zhdVFU0IH3gRzckEQSBU70JejdGF78h4ML2e/BEhjScDKOvgvljgf/OXQNznoBtILw==
+  dependencies:
+    bullmq "5.13.0"
+    ioredis "^5.4.1"
+
+"@medusajs/event-bus-redis@^2.8.8":
+  version "2.8.8"
+  resolved "https://registry.yarnpkg.com/@medusajs/event-bus-redis/-/event-bus-redis-2.8.8.tgz#dda4ff475f3e813b2ecc1bc8c22655290f200205"
+  integrity sha512-sE3oRQhapAi8csdYr0XBqWIXJtBuU1eGDGgsOO7fP6qA+vEchK71DrnpJHPubR2Qha4T6Ef6gdbCVZXTwo2nYw==
   dependencies:
     bullmq "5.13.0"
     ioredis "^5.4.1"
@@ -2507,6 +2522,15 @@
   version "2.8.7"
   resolved "https://registry.npmjs.org/@medusajs/workflow-engine-redis/-/workflow-engine-redis-2.8.7.tgz"
   integrity sha512-Wy1Xir+mwC1Z38+uQvm/K0lOCoCIcrzpYcLMQv+Q+wvg/XWJ+4QpQHRcaSQNZ0ypIZZ+/ZNdmz9FUpePCibTDg==
+  dependencies:
+    bullmq "5.13.0"
+    ioredis "^5.4.1"
+    ulid "^2.3.0"
+
+"@medusajs/workflow-engine-redis@^2.8.8":
+  version "2.8.8"
+  resolved "https://registry.yarnpkg.com/@medusajs/workflow-engine-redis/-/workflow-engine-redis-2.8.8.tgz#c80643db982007d0f6d0cbc9c3c78eeec54f5bde"
+  integrity sha512-zRRYgMxW60sUDvKpYJZEbCChIKrPdDgikwSgcc0YYHOt0+UzCkXce76vhS8RCd32j/9YiA0TZv1ntW5GeDpJag==
   dependencies:
     bullmq "5.13.0"
     ioredis "^5.4.1"

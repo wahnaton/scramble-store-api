@@ -1,11 +1,9 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { loadEnv, defineConfig, Modules } from "@medusajs/framework/utils"
 import { FOURTHWALL_MODULE } from "./src/modules/fourthwall"
-import { Modules } from "@medusajs/framework/utils"
-
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
-module.exports = defineConfig({
+export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
@@ -15,11 +13,24 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
+    redisUrl: process.env.REDIS_URL,
   },
   modules: {
     [FOURTHWALL_MODULE]: {
       resolve: "./src/modules/fourthwall",
       dependencies: [Modules.PRODUCT, Modules.SALES_CHANNEL],
+    },
+    [Modules.CACHE]: {
+      resolve: "@medusajs/cache-redis",
+      options: { redisUrl: process.env.REDIS_URL },
+    },
+    [Modules.EVENT_BUS]: {
+      resolve: "@medusajs/event-bus-redis",
+      options: { redisUrl: process.env.EVENTS_REDIS_URL || process.env.REDIS_URL },
+    },
+    [Modules.WORKFLOW_ENGINE]: {
+      resolve: "@medusajs/workflow-engine-redis",
+      options: { redis: { url: process.env.WE_REDIS_URL || process.env.REDIS_URL } },
     },
   },
 })
