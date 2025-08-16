@@ -6,6 +6,10 @@ on:
     tags: ['v*.*.*']
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: scramble-store-api-image-repo
+
 permissions:
   contents: read
 
@@ -16,26 +20,25 @@ concurrency:
 jobs:
   build-push:
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: us-east-1
-      ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-      ECR_REPOSITORY: scramble-store-api-image-repo
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - uses: docker/setup-buildx-action@v3
 
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" | \
-          docker login --username AWS --password-stdin "$ECR_REGISTRY"
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
 
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long
