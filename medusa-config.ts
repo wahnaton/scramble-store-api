@@ -26,11 +26,11 @@ export default defineConfig({
     },
     [Modules.EVENT_BUS]: {
       resolve: "@medusajs/event-bus-redis",
-      options: { redisUrl: process.env.EVENTS_REDIS_URL || process.env.REDIS_URL },
+      options: { redisUrl: process.env.REDIS_URL },
     },
     [Modules.WORKFLOW_ENGINE]: {
       resolve: "@medusajs/workflow-engine-redis",
-      options: { redis: { url: process.env.WE_REDIS_URL || process.env.REDIS_URL } },
+      options: { redis: { url: process.env.REDIS_URL } },
     },
   },
 })
