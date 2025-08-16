@@ -26,4 +26,3 @@ build
 !.yarn/versions
 
 .medusa
-package-lock.json
