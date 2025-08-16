@@ -3,9 +3,9 @@
 This starter is compatible with versions >= 2 of `@medusajs/medusa`. 
 
 ## Commands
-`yarn install`
-`yarn build`
-`yarn dev`
+`npm install`
+`npm run build`
+`npm run dev`
 
 ## Example API Calls
 Ping:
