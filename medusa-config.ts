@@ -19,6 +19,10 @@ export default defineConfig({
     [FOURTHWALL_MODULE]: {
       resolve: "./src/modules/fourthwall",
       dependencies: [Modules.PRODUCT, Modules.SALES_CHANNEL],
+      options: {
+        token: process.env.FOURTHWALL_STOREFRONT_TOKEN,
+        apiBase: process.env.FOURTHWALL_API_BASE,
+      },
     },
     [Modules.CACHE]: {
       resolve: "@medusajs/cache-redis",

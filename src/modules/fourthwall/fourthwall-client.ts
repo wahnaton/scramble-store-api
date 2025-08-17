@@ -47,18 +47,9 @@ export class FourthwallClient {
   private readonly baseUrl: string
   private readonly storefrontToken: string
 
-  constructor() {
-    this.baseUrl =
-      process.env.FOURTHWALL_API_BASE?.replace(/\/$/, "") ||
-      "https://storefront-api.fourthwall.com/v1"
-
-    this.storefrontToken = process.env.FOURTHWALL_STOREFRONT_TOKEN || ""
-    if (!this.storefrontToken) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "FOURTHWALL_STOREFRONT_TOKEN env var is required"
-      )
-    }
+  constructor(config: { apiBase: string; token: string }) {
+    this.baseUrl = (config.apiBase || "https://storefront-api.fourthwall.com/v1").replace(/\/$/, "")
+    this.storefrontToken = config.token || ""
   }
 
   async listProducts(): Promise<FourthwallProduct[]> {
@@ -118,6 +109,9 @@ export class FourthwallClient {
     path: string,
     options: RequestOptions = {}
   ): Promise<T> {
+    if (!this.storefrontToken) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Missing FOURTHWALL_STOREFRONT_TOKEN")
+    }
     const requestUrl = new URL(this.baseUrl + path)
     requestUrl.searchParams.set("storefront_token", this.storefrontToken)
     if (options.query) {
@@ -159,4 +153,9 @@ export class FourthwallClient {
   }
 }
 
-export const fourthwallClient = new FourthwallClient()
+export const createFourthwallClient = (config?: { apiBase?: string; token?: string }) => new FourthwallClient(config as { apiBase: string; token: string })
+
+export const fourthwallClient = createFourthwallClient({
+  apiBase: process.env.FOURTHWALL_API_BASE || "https://storefront-api.fourthwall.com/v1",
+  token: process.env.FOURTHWALL_STOREFRONT_TOKEN || "",
+})
