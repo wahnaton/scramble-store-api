@@ -19,10 +19,10 @@ FROM node:20-alpine
 WORKDIR /app
 RUN apk add --no-cache curl
 ENV NODE_ENV=production
-COPY --from=build /app/dist ./dist
+COPY --from=build /app/.medusa/server ./.medusa/server
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 CMD curl -fsS http://localhost:9000/health || exit 1
 USER node
-CMD ["node","dist/index.js"]
+CMD ["node",".medusa/server/index.js"]
