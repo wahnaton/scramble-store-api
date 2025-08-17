@@ -9,6 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: scramble-store-api-image-repo
+  ECR_CACHE_REPOSITORY: scramble-store-api-buildcache
 
 permissions:
   contents: read
@@ -50,6 +51,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_CACHE_REPOSITORY }}:buildcache
+          cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_CACHE_REPOSITORY }}:buildcache,mode=max,compression=zstd,force-compression=true
+          provenance: false
+          sbom: false
