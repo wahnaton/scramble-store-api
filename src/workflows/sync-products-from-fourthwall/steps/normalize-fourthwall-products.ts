@@ -2,6 +2,7 @@ import { ProductTypes } from "@medusajs/framework/types"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { FourthwallProduct } from "../../../modules/fourthwall/fourthwall-client"
 import { slugify } from "../../../utils/string-utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export type NormalizeFourthwallProductsInput = {
   fourthwallProducts: FourthwallProduct[]
@@ -11,7 +12,8 @@ export type NormalizeFourthwallProductsInput = {
 
 export const normalizeFourthwallProductsStep = createStep(
   "normalize-fourthwall-products",
-  async (input: NormalizeFourthwallProductsInput) => {
+  async (input: NormalizeFourthwallProductsInput, { container }) => {
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     
     const upserts: ProductTypes.UpsertProductDTO[] = input.fourthwallProducts.map((fwProduct) => {
       const existingId = input.externalIdToProductIdMap[fwProduct.id]
@@ -40,6 +42,7 @@ export const normalizeFourthwallProductsStep = createStep(
       return { id: existingId, ...base }
     })
 
+    logger.info(`[sync] prepared ${upserts.length} product upserts`)
     return new StepResponse<ProductTypes.UpsertProductDTO[]>(upserts)
   },
 )

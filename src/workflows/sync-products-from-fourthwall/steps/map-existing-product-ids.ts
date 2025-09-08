@@ -1,4 +1,4 @@
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { FourthwallProduct } from "../../../modules/fourthwall/fourthwall-client"
 
@@ -14,6 +14,7 @@ export type MapExistingProductIdsOutput = {
 export const mapExistingProductIdsStep = createStep(
   "map-external-id-to-product-id",
   async (input: MapExistingProductIdsInput, { container }) => {
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const productModuleService = container.resolve(Modules.PRODUCT)
     const externalProductIds = input.fourthwallProducts.map((fw) => fw.id)
 
@@ -45,6 +46,9 @@ export const mapExistingProductIdsStep = createStep(
           externalVariantIdToVariantIdMap[extId] = variant.id
         }
       }
+      logger.info(
+        `[sync] mapped ${Object.keys(externalIdToProductIdMap).length} products and ${Object.keys(externalVariantIdToVariantIdMap).length} variants by external_id`
+      )
     }
 
     return new StepResponse<MapExistingProductIdsOutput>({

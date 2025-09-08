@@ -1,10 +1,11 @@
 import { createWorkflow, transform, WorkflowResponse } from "@medusajs/framework/workflows-sdk"
-import { linkProductsToSalesChannelWorkflow } from "@medusajs/medusa/core-flows"
+import { linkProductsToSalesChannelWorkflow, upsertVariantPricesWorkflow } from "@medusajs/medusa/core-flows"
 import { ProductDTO } from "@medusajs/types"
 import { fetchFourthwallProductsStep } from "./steps/fetch-fourthwall-products"
 import { mapExistingProductIdsStep } from "./steps/map-existing-product-ids"
 import { normalizeFourthwallProductsStep } from "./steps/normalize-fourthwall-products"
 import { upsertProductsStep } from "./steps/upsert-products"
+import { prepareVariantPricesStep } from "./steps/prepare-variant-prices"
 
 
 export const syncProductsFromFourthwall = createWorkflow("sync-products-from-fourthwall",
@@ -16,6 +17,7 @@ export const syncProductsFromFourthwall = createWorkflow("sync-products-from-fou
     const upserts = normalizeFourthwallProductsStep({ fourthwallProducts, externalIdToProductIdMap, externalVariantIdToVariantIdMap })
 
     const products = upsertProductsStep({ upserts })
+    const variantPriceData = prepareVariantPricesStep({ fourthwallProducts, products, externalVariantIdToVariantIdMap })
     const productIds = transform({ products }, (data) => data.products.map((p: ProductDTO) => p.id))
 
     // Always use default sales channel for sync
@@ -25,6 +27,13 @@ export const syncProductsFromFourthwall = createWorkflow("sync-products-from-fou
     // Consider changing in the future if thousands of products or getting throttled
     linkProductsToSalesChannelWorkflow.runAsStep({
       input: { id: defaultSalesChannelId, add: productIds },
+    })
+
+    upsertVariantPricesWorkflow.runAsStep({
+      input: {
+        variantPrices: variantPriceData.variantPrices,
+        previousVariantIds: variantPriceData.previousVariantIds,
+      },
     })
 
     return new WorkflowResponse({

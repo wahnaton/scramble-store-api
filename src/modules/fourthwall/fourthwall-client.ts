@@ -3,7 +3,8 @@ import { MedusaError } from "@medusajs/utils"
 export interface FourthwallVariant {
   id: string
   title: string
-  price: number
+  // Source of truth for selling price on Fourthwall
+  unitPrice: { value: number; currency: string }
   sku?: string
   availableForSale?: boolean
 }
@@ -72,7 +73,11 @@ export class FourthwallClient {
       variants: (p.variants || []).map((v: any) => ({
         id: v.id,
         title: v.name,
-        price: v.price,
+        unitPrice: {
+          value: (v?.unitPrice?.value ?? v?.price) as number,
+          currency: (v?.unitPrice?.currency ?? p?.currency ?? "USD") as string,
+        },
+        compareAtPrice: v?.compareAtPrice ?? null,
         sku: v.sku,
         availableForSale: v.availableForSale,
       })),
