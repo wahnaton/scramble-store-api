@@ -23,10 +23,16 @@ curl -X POST http://localhost:9000/admin/fourthwall/sync-products \
   -H "Authorization: Bearer $TOKEN"
   ```
 
-Products:
+### Products API
+
+Local call:
 ```
-curl http://localhost:9000/store/products \
-  -H "x-publishable-api-key: <your-key>"
+curl http://localhost:9000/store/products -H "x-publishable-api-key: <your-key>"
+```
+
+Server call:
+```
+curl -X GET https://api.playscramblegame.com/store/products -H "x-publishable-api-key: <your-key>"
 ```
 
 Printful:
