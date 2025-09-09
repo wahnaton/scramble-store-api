@@ -1,55 +1,55 @@
-name: build-and-push-scramble-store-api
+# name: build-and-push-scramble-store-api
 
-on:
-  push:
-    branches: [master]
-    tags: ['v*.*.*']
-  workflow_dispatch:
+# on:
+#   push:
+#     branches: [master]
+#     tags: ['v*.*.*']
+#   workflow_dispatch:
 
-env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: scramble-store-api-image-repo
+# env:
+#   AWS_REGION: us-east-1
+#   ECR_REPOSITORY: scramble-store-api-image-repo
 
-permissions:
-  contents: read
+# permissions:
+#   contents: read
 
-concurrency:
-  group: build-and-push-ecr-${{ github.ref }}
-  cancel-in-progress: false
+# concurrency:
+#   group: build-and-push-ecr-${{ github.ref }}
+#   cancel-in-progress: false
 
-jobs:
-  build-push:
-    runs-on: ubuntu-latest
+# jobs:
+#   build-push:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+#       - uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: docker/setup-buildx-action@v3
+#       - uses: docker/setup-buildx-action@v3
 
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: login-ecr
+#       - uses: aws-actions/amazon-ecr-login@v2
+#         id: login-ecr
 
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,format=long
-            type=ref,event=tag
+#       - uses: docker/metadata-action@v5
+#         id: meta
+#         with:
+#           images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+#           tags: |
+#             type=raw,value=latest,enable={{is_default_branch}}
+#             type=sha,format=long
+#             type=ref,event=tag
 
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/arm64
+#       - uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           push: true
+#           tags: ${{ steps.meta.outputs.tags }}
+#           labels: ${{ steps.meta.outputs.labels }}
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+#           platforms: linux/arm64

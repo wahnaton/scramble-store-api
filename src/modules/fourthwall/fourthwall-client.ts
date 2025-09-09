@@ -7,6 +7,9 @@ export interface FourthwallVariant {
   unitPrice: { value: number; currency: string }
   sku?: string
   availableForSale?: boolean
+  colorName?: string
+  colorSwatch?: string
+  sizeName?: string
 }
 
 export interface FourthwallProduct {
@@ -80,6 +83,9 @@ export class FourthwallClient {
         compareAtPrice: v?.compareAtPrice ?? null,
         sku: v.sku,
         availableForSale: v.availableForSale,
+        colorName: v?.attributes?.color?.name,
+        colorSwatch: v?.attributes?.color?.swatch,
+        sizeName: v?.attributes?.size?.name,
       })),
     }))
 

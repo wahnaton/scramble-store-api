@@ -25,6 +25,7 @@ export const prepareVariantPricesStep = createStep(
     const remoteQuery = container.resolve(
       ContainerRegistrationKeys.REMOTE_QUERY
     ) as (args: any, config?: any) => Promise<any[]>
+    
     const productByExternalId = new Map(
       input.products.map((p: ProductDTO) => [p.external_id, p])
     )
