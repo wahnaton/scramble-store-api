@@ -1,17 +1,17 @@
-import { ProductTypes, ProductDTO } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { ProductTypes, ProductDTO } from '@medusajs/framework/types'
+import { ContainerRegistrationKeys, Modules } from '@medusajs/framework/utils'
+import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
 
 export type UpsertProductsInput = {
-  upserts: ProductTypes.UpsertProductDTO[],
+  upserts: ProductTypes.UpsertProductDTO[]
 }
 
 export const upsertProductsStep = createStep(
-  "upsert-products",
+  'upsert-products',
   async (input: UpsertProductsInput, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     if (!input.upserts?.length) {
-      logger.info("[sync] no product upserts to apply")
+      logger.info('[sync] no product upserts to apply')
       return new StepResponse<ProductDTO[]>([], [])
     }
     const productModule = container.resolve(Modules.PRODUCT)
@@ -21,5 +21,5 @@ export const upsertProductsStep = createStep(
   },
   async () => {
     // no-op compensation for upsert
-  }
+  },
 )

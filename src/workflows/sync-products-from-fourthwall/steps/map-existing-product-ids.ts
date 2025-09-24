@@ -1,6 +1,6 @@
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { FourthwallProduct } from "../../../modules/fourthwall/fourthwall-client"
+import { ContainerRegistrationKeys, Modules } from '@medusajs/framework/utils'
+import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
+import { FourthwallProduct } from '../../../modules/fourthwall/fourthwall-types'
 
 export type MapExistingProductIdsInput = {
   fourthwallProducts: FourthwallProduct[]
@@ -12,7 +12,7 @@ export type MapExistingProductIdsOutput = {
 }
 
 export const mapExistingProductIdsStep = createStep(
-  "map-external-id-to-product-id",
+  'map-external-id-to-product-id',
   async (input: MapExistingProductIdsInput, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const productModuleService = container.resolve(Modules.PRODUCT)
@@ -20,7 +20,7 @@ export const mapExistingProductIdsStep = createStep(
 
     const existingProducts = await productModuleService.listProducts(
       { external_id: externalProductIds },
-      { select: ["id", "external_id"] }
+      { select: ['id', 'external_id'] },
     )
 
     const externalIdToProductIdMap: Record<string, string> = {}
@@ -36,18 +36,18 @@ export const mapExistingProductIdsStep = createStep(
     if (productIds.length) {
       const variants = await productModuleService.listProductVariants(
         { product_id: productIds },
-        { select: ["id", "metadata", "product_id"] }
+        { select: ['id', 'metadata', 'product_id'] },
       )
 
       for (const variant of variants) {
-        const extId = (variant as any)?.metadata?.external_id
-        
-        if ((variant as any)?.metadata?.external_id) {
+        const extId = variant?.metadata?.external_id
+
+        if (typeof extId === 'string' && extId) {
           externalVariantIdToVariantIdMap[extId] = variant.id
         }
       }
       logger.info(
-        `[sync] mapped ${Object.keys(externalIdToProductIdMap).length} products and ${Object.keys(externalVariantIdToVariantIdMap).length} variants by external_id`
+        `[sync] mapped ${Object.keys(externalIdToProductIdMap).length} products and ${Object.keys(externalVariantIdToVariantIdMap).length} variants by external_id`,
       )
     }
 
@@ -55,5 +55,5 @@ export const mapExistingProductIdsStep = createStep(
       externalIdToProductIdMap,
       externalVariantIdToVariantIdMap,
     })
-  }
+  },
 )

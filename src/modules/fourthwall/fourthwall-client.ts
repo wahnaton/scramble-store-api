@@ -1,42 +1,13 @@
-import { MedusaError } from "@medusajs/utils"
-
-export interface FourthwallVariant {
-  id: string
-  title: string
-  // Source of truth for selling price on Fourthwall
-  unitPrice: { value: number; currency: string }
-  sku?: string
-  availableForSale?: boolean
-  colorName?: string
-  colorSwatch?: string
-  sizeName?: string
-}
-
-export interface FourthwallProduct {
-  id: string
-  title: string
-  description?: string
-  handle?: string
-  images: { url: string }[]
-  variants: FourthwallVariant[]
-}
-
-export interface CreateCartItem {
-  variant_id: string
-  quantity: number
-}
-
-export interface FourthwallCart {
-  id: string
-  currency: string
-  items: Array<{
-    variant_id: string
-    quantity: number
-  }>
-}
+import { MedusaError } from '@medusajs/utils'
+import type {
+  FourthwallApiProduct,
+  FourthwallCollectionProductsResponse,
+  FourthwallCollectionsResponse,
+  FourthwallProduct,
+} from './fourthwall-types'
 
 type RequestOptions = {
-  method?: string
+  method: string
   body?: unknown
   query?: Record<string, string | number | undefined>
 }
@@ -52,79 +23,65 @@ export class FourthwallClient {
   private readonly storefrontToken: string
 
   constructor(config: { apiBase: string; token: string }) {
-    this.baseUrl = (config.apiBase || "https://storefront-api.fourthwall.com/v1").replace(/\/$/, "")
-    this.storefrontToken = config.token || ""
+    this.baseUrl = (config.apiBase || 'https://storefront-api.fourthwall.com/v1').replace(/\/$/, '')
+    this.storefrontToken = config.token || ''
   }
 
   async listProducts(): Promise<FourthwallProduct[]> {
-    const cols = await this.request<{ results: any[] }>("/collections")
-    const results: any[] = []
+    const cols = await this.request<FourthwallCollectionsResponse>('/collections', {
+      method: 'GET',
+    })
+    const results: FourthwallApiProduct[] = []
 
     for (const c of cols?.results || []) {
-      const col = await this.request<{ results: any[] }>(
-        `/collections/${encodeURIComponent(c.slug)}/products`
+      const col = await this.request<FourthwallCollectionProductsResponse>(
+        `/collections/${encodeURIComponent(c.slug)}/products`,
+        { method: 'GET' },
       )
       for (const p of col?.results || []) results.push(p)
     }
 
-    const mapped: FourthwallProduct[] = results.map((p: any) => ({
-      id: p.id,
-      title: p.name,
-      description: p.description,
-      handle: p.slug,
-      images: (p.images || []).map((im: any) => ({ url: im.url })).filter((i: any) => !!i.url),
-      variants: (p.variants || []).map((v: any) => ({
-        id: v.id,
-        title: v.name,
-        unitPrice: {
-          value: (v?.unitPrice?.value ?? v?.price) as number,
-          currency: (v?.unitPrice?.currency ?? p?.currency ?? "USD") as string,
-        },
-        compareAtPrice: v?.compareAtPrice ?? null,
-        sku: v.sku,
-        availableForSale: v.availableForSale,
-        colorName: v?.attributes?.color?.name,
-        colorSwatch: v?.attributes?.color?.swatch,
-        sizeName: v?.attributes?.size?.name,
-      })),
-    }))
-
-    return mapped
+    return results.map((product) => this.normalizeProduct(product))
   }
 
   async retrieveProduct(id: string): Promise<FourthwallProduct> {
-    return this.request<{ product: FourthwallProduct }>(`/products/${id}`).then(
-      (responseBody) => responseBody.product
-    )
+    return this.request<{ product: FourthwallApiProduct }>(`/products/${id}`, {
+      method: 'GET',
+    }).then((responseBody) => this.normalizeProduct(responseBody.product))
   }
 
-  /**
-   * Creates a cart on Fourthwall. You must redirect user to hosted checkout:
-   *   https://<your_checkout_domain>/checkout/?cartCurrency=<currency>&cartId=<cartId>
-   */
-  async createCart(
-    items: CreateCartItem[],
-    currency?: string
-  ): Promise<FourthwallCart> {
-    const requestBody: any = { items }
-    if (currency) {
-      requestBody.currency = currency
+  private normalizeProduct(product: FourthwallApiProduct): FourthwallProduct {
+    return {
+      id: product.id,
+      title: product.name,
+      description: product.description,
+      handle: product.slug,
+      images: (product.images || [])
+        .map((image) => ({ url: image.url || '' }))
+        .filter((image) => !!image.url),
+      variants: (product.variants || []).map((variant) => ({
+        id: variant.id,
+        title: variant.name,
+        unitPrice: {
+          value: (variant.unitPrice?.value ?? variant.price) as number,
+          currency: (variant.unitPrice?.currency ?? product.currency ?? 'USD') as string,
+        },
+        compareAtPrice: variant?.compareAtPrice ?? null,
+        sku: variant.sku,
+        availableForSale: variant.availableForSale,
+        colorName: variant.attributes?.color?.name,
+        colorSwatch: variant.attributes?.color?.swatch,
+        sizeName: variant.attributes?.size?.name,
+      })),
     }
-    return this.request<{ cart: FourthwallCart }>("/carts", {
-      method: "POST",
-      body: requestBody,
-    }).then((responseBody) => responseBody.cart)
   }
 
-  private async request<T>(
-    path: string,
-    options: RequestOptions = {}
-  ): Promise<T> {
+  private async request<T>(path: string, options: RequestOptions): Promise<T> {
     if (!this.storefrontToken) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Missing FOURTHWALL_STOREFRONT_TOKEN")
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, 'Missing FOURTHWALL_STOREFRONT_TOKEN')
     }
     const requestUrl = new URL(this.baseUrl + path)
-    requestUrl.searchParams.set("storefront_token", this.storefrontToken)
+    requestUrl.searchParams.set('storefront_token', this.storefrontToken)
     if (options.query) {
       for (const [key, value] of Object.entries(options.query)) {
         if (value !== undefined) {
@@ -134,10 +91,10 @@ export class FourthwallClient {
     }
 
     const requestInit: RequestInit = {
-      method: options.method || "GET",
+      method: options.method,
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     }
     if (options.body !== undefined) {
@@ -145,7 +102,7 @@ export class FourthwallClient {
     }
 
     const response = await fetch(requestUrl.toString(), requestInit)
-    let responseBody: any
+    let responseBody: unknown
     try {
       responseBody = await response.json()
     } catch {
@@ -153,10 +110,7 @@ export class FourthwallClient {
     }
 
     if (!response.ok) {
-      const message =
-        responseBody?.message ||
-        responseBody?.error ||
-        `Fourthwall request failed: ${response.status}`
+      const message = `Fourthwall request failed: ${response.status}`
       throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, message)
     }
 
@@ -164,9 +118,12 @@ export class FourthwallClient {
   }
 }
 
-export const createFourthwallClient = (config?: { apiBase?: string; token?: string }) => new FourthwallClient(config as { apiBase: string; token: string })
+export const createFourthwallClient = (config?: {
+  apiBase?: string
+  token?: string
+}): FourthwallClient => new FourthwallClient(config as { apiBase: string; token: string })
 
 export const fourthwallClient = createFourthwallClient({
-  apiBase: process.env.FOURTHWALL_API_BASE || "https://storefront-api.fourthwall.com/v1",
-  token: process.env.FOURTHWALL_STOREFRONT_TOKEN || "",
+  apiBase: process.env.FOURTHWALL_API_BASE || 'https://storefront-api.fourthwall.com/v1',
+  token: process.env.FOURTHWALL_STOREFRONT_TOKEN || '',
 })

@@ -1,4 +1,5 @@
-import { FourthwallClient, FourthwallProduct, fourthwallClient } from "./fourthwall-client"
+import { FourthwallClient, fourthwallClient } from './fourthwall-client'
+import { FourthwallProduct } from './fourthwall-types'
 
 export interface IFourthwallModuleService {
   retrieveProducts(): Promise<FourthwallProduct[]>

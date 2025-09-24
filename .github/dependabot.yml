@@ -1,21 +1,21 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "daily"
+      interval: 'daily'
     allow:
       - dependency-type: production
     groups:
       medusa:
         patterns:
-        - "@medusajs*"
-        - "medusa*"
+          - '@medusajs*'
+          - 'medusa*'
         update-types:
-        - "minor"
-        - "patch"
+          - 'minor'
+          - 'patch'
     ignore:
-      - dependency-name: "@medusajs*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "medusa*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '@medusajs*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'medusa*'
+        update-types: ['version-update:semver-major']

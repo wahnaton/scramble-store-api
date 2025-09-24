@@ -1,7 +1,7 @@
-import { ProductDTO } from "@medusajs/types"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { FourthwallProduct } from "../../../modules/fourthwall/fourthwall-client"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ProductDTO } from '@medusajs/types'
+import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
+import { FourthwallProduct } from '../../../modules/fourthwall/fourthwall-types'
+import { ContainerRegistrationKeys } from '@medusajs/framework/utils'
 
 export type PrepareVariantPricesInput = {
   fourthwallProducts: FourthwallProduct[]
@@ -19,39 +19,35 @@ export type PrepareVariantPricesOutput = {
 }
 
 export const prepareVariantPricesStep = createStep(
-  "prepare-variant-prices",
+  'prepare-variant-prices',
   async (input: PrepareVariantPricesInput, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-    const remoteQuery = container.resolve(
-      ContainerRegistrationKeys.REMOTE_QUERY
-    ) as (args: any, config?: any) => Promise<any[]>
-    
-    const productByExternalId = new Map(
-      input.products.map((p: ProductDTO) => [p.external_id, p])
-    )
+    const remoteQuery = container.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
 
-    const entries: PrepareVariantPricesOutput["variantPrices"] = []
+    const productByExternalId = new Map(input.products.map((p: ProductDTO) => [p.external_id, p]))
+
+    const entries: PrepareVariantPricesOutput['variantPrices'] = []
 
     for (const fwProduct of input.fourthwallProducts) {
       const medusaProduct = productByExternalId.get(fwProduct.id)
       if (!medusaProduct) continue
-      const variants = (medusaProduct as any).variants || []
+      const variants = medusaProduct.variants || []
       const variantByExternalId = new Map(
-        variants.map((v: any) => [v?.metadata?.external_id, v])
+        variants.map((variant) => [variant?.metadata?.external_id, variant]),
       )
 
       for (const fwVariant of fwProduct.variants) {
         const mappedVariantId = input.externalVariantIdToVariantIdMap[fwVariant.id]
-        const medusaVariantId = mappedVariantId || (variantByExternalId.get(fwVariant.id) as any)?.id
+        const medusaVariantId = mappedVariantId || variantByExternalId.get(fwVariant.id)?.id
         if (!medusaVariantId) continue
 
-        const unitPrice = (fwVariant as any)?.unitPrice
+        const unitPrice = fwVariant?.unitPrice
         const value = unitPrice?.value
-        const currency = (unitPrice?.currency || "USD").toString().toLowerCase()
+        const currency = (unitPrice?.currency || 'USD').toString().toLowerCase()
 
-        if (typeof value !== "number" || !Number.isFinite(value)) {
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
           logger.warn(
-            `[sync] skipping price upsert for variant ${fwVariant.id} (${fwVariant.title}) on product ${fwProduct.id} due to missing unitPrice`
+            `[sync] skipping price upsert for variant ${fwVariant.id} (${fwVariant.title}) on product ${fwProduct.id} due to missing unitPrice`,
           )
           continue
         }
@@ -76,21 +72,21 @@ export const prepareVariantPricesStep = createStep(
     let previousVariantIds: string[] = []
     if (variantIds.length) {
       const links = await remoteQuery({
-        entryPoint: "product_variant_price_set",
-        fields: ["variant_id"],
+        entryPoint: 'product_variant_price_set',
+        fields: ['variant_id'],
         variables: { filters: { variant_id: variantIds } },
       })
-      const linkedIds = new Set<string>(links.map((l: any) => l.variant_id))
+      const linkedIds = new Set<string>(links.map((l) => l.variant_id))
       previousVariantIds = variantIds.filter((id) => linkedIds.has(id))
     }
 
     logger.info(
-      `[sync] prepared prices for ${entries.length} variants, previousVariantIds: ${previousVariantIds.length}`
+      `[sync] prepared prices for ${entries.length} variants, previousVariantIds: ${previousVariantIds.length}`,
     )
 
     return new StepResponse<PrepareVariantPricesOutput>({
       variantPrices: entries,
       previousVariantIds,
     })
-  }
+  },
 )

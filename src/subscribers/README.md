@@ -9,18 +9,16 @@ The subscriber is created in a TypeScript or JavaScript file under the `src/subs
 For example, create the file `src/subscribers/product-created.ts` with the following content:
 
 ```ts
-import {
-  type SubscriberConfig,
-} from "@medusajs/framework"
+import { type SubscriberConfig } from '@medusajs/framework'
 
 // subscriber function
 export default async function productCreateHandler() {
-  console.log("A product was created")
+  console.log('A product was created')
 }
 
 // subscriber config
 export const config: SubscriberConfig = {
-  event: "product.created",
+  event: 'product.created',
 }
 ```
 
@@ -37,10 +35,7 @@ A subscriber receives an object having the following properties:
 - `container`: The Medusa container. Use it to resolve modules' main services and other registered resources.
 
 ```ts
-import type {
-  SubscriberArgs,
-  SubscriberConfig,
-} from "@medusajs/framework"
+import type { SubscriberArgs, SubscriberConfig } from '@medusajs/framework'
 
 export default async function productCreateHandler({
   event: { data },
@@ -48,7 +43,7 @@ export default async function productCreateHandler({
 }: SubscriberArgs<{ id: string }>) {
   const productId = data.id
 
-  const productModuleService = container.resolve("product")
+  const productModuleService = container.resolve('product')
 
   const product = await productModuleService.retrieveProduct(productId)
 
@@ -56,6 +51,6 @@ export default async function productCreateHandler({
 }
 
 export const config: SubscriberConfig = {
-  event: "product.created",
+  event: 'product.created',
 }
 ```
