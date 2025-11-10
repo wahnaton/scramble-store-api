@@ -7,6 +7,7 @@ This starter is compatible with versions >= 2 of `@medusajs/medusa`.
 `npm install`
 `npm run build`
 `npm run dev`
+`npx medusa db:migrate`
 
 ## Example API Calls
 
