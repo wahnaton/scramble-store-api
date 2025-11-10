@@ -9,6 +9,9 @@ This starter is compatible with versions >= 2 of `@medusajs/medusa`.
 `npm run dev`
 `npx medusa db:migrate`
 
+## Note to future self
+* When you want to use local redis comment out the redis stuff in medusa-config.ts
+
 ## Example API Calls
 
 Ping:

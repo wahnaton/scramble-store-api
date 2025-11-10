@@ -51,14 +51,19 @@ export class FourthwallClient {
   }
 
   private normalizeProduct(product: FourthwallApiProduct): FourthwallProduct {
+    const images = (product.images || [])
+      .map((image) => ({ url: image.url || '' }))
+      .filter((image) => !!image.url)
+    const thumbnailUrl =
+      product.thumbnailImage?.transformedUrl || product.thumbnailImage?.url || images[0]?.url
+
     return {
       id: product.id,
       title: product.name,
       description: product.description,
       handle: product.slug,
-      images: (product.images || [])
-        .map((image) => ({ url: image.url || '' }))
-        .filter((image) => !!image.url),
+      thumbnail: thumbnailUrl,
+      images,
       variants: (product.variants || []).map((variant) => ({
         id: variant.id,
         title: variant.name,

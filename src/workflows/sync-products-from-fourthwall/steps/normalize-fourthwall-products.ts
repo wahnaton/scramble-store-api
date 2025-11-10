@@ -19,9 +19,8 @@ export const normalizeFourthwallProductsStep = createStep(
       const existingId = input.externalIdToProductIdMap[fwProduct.id]
       const title = fwProduct.title ?? 'Untitled'
       const handle = fwProduct.handle ?? slugify(title)
-      const images = (fwProduct.images || [])
-        .map((image: { url?: string }) => image.url)
-        .filter(Boolean)
+      const thumbnail =
+        fwProduct.thumbnail ?? fwProduct.images?.find((image) => image.url)?.url
 
       const colorMap = new Map<string, string>()
       const sizeMap = new Map<string, string>()
@@ -82,7 +81,7 @@ export const normalizeFourthwallProductsStep = createStep(
         handle,
         description: fwProduct.description ?? '',
         status: 'published' as const,
-        thumbnail: images[0],
+        thumbnail,
         external_id: fwProduct.id,
         ...(options.length ? { options } : {}),
         variants,

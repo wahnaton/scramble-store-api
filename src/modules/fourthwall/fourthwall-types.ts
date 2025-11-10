@@ -39,6 +39,7 @@ export interface FourthwallApiProduct {
   description?: string
   slug?: string
   currency?: string
+  thumbnailImage?: { url?: string; transformedUrl?: string }
   images?: { url?: string }[]
   variants?: FourthwallApiVariant[]
 }
@@ -64,6 +65,7 @@ export interface FourthwallProduct {
   title: string
   description?: string
   handle?: string
-  images: { url: string }[]
+  thumbnail?: string
+  images?: { url: string }[]
   variants: FourthwallVariant[]
 }
