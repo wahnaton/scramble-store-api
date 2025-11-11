@@ -36,7 +36,7 @@
     "@medusajs/product": "2.11.3",
     "@medusajs/sales-channel": "2.11.3",
     "@medusajs/workflow-engine-redis": "2.11.3",
-    "@mikro-orm/core": "6.4.16",
+    "@mikro-orm/core": "6.5.9",
     "@mikro-orm/knex": "6.4.16",
     "@mikro-orm/migrations": "6.4.16",
     "@mikro-orm/postgresql": "6.4.16",
