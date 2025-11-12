@@ -1,9 +1,8 @@
 import { MedusaError } from '@medusajs/utils'
 import type {
-  FourthwallApiProduct,
+  FourthwallProduct,
   FourthwallCollectionProductsResponse,
   FourthwallCollectionsResponse,
-  FourthwallProduct,
 } from './fourthwall-types'
 
 type RequestOptions = {
@@ -31,7 +30,7 @@ export class FourthwallClient {
     const cols = await this.request<FourthwallCollectionsResponse>('/collections', {
       method: 'GET',
     })
-    const results: FourthwallApiProduct[] = []
+    const results: FourthwallProduct[] = []
 
     for (const c of cols?.results || []) {
       const col = await this.request<FourthwallCollectionProductsResponse>(
@@ -41,44 +40,13 @@ export class FourthwallClient {
       for (const p of col?.results || []) results.push(p)
     }
 
-    return results.map((product) => this.normalizeProduct(product))
+    return results
   }
 
   async retrieveProduct(id: string): Promise<FourthwallProduct> {
-    return this.request<{ product: FourthwallApiProduct }>(`/products/${id}`, {
+    return this.request<{ product: FourthwallProduct }>(`/products/${id}`, {
       method: 'GET',
-    }).then((responseBody) => this.normalizeProduct(responseBody.product))
-  }
-
-  private normalizeProduct(product: FourthwallApiProduct): FourthwallProduct {
-    const images = (product.images || [])
-      .map((image) => ({ url: image.url || '' }))
-      .filter((image) => !!image.url)
-    const thumbnailUrl =
-      product.thumbnailImage?.transformedUrl || product.thumbnailImage?.url || images[0]?.url
-
-    return {
-      id: product.id,
-      title: product.name,
-      description: product.description,
-      handle: product.slug,
-      thumbnail: thumbnailUrl,
-      images,
-      variants: (product.variants || []).map((variant) => ({
-        id: variant.id,
-        title: variant.name,
-        unitPrice: {
-          value: (variant.unitPrice?.value ?? variant.price) as number,
-          currency: (variant.unitPrice?.currency ?? product.currency ?? 'USD') as string,
-        },
-        compareAtPrice: variant?.compareAtPrice ?? null,
-        sku: variant.sku,
-        availableForSale: variant.availableForSale,
-        colorName: variant.attributes?.color?.name,
-        colorSwatch: variant.attributes?.color?.swatch,
-        sizeName: variant.attributes?.size?.name,
-      })),
-    }
+    }).then((responseBody) => responseBody.product)
   }
 
   private async request<T>(path: string, options: RequestOptions): Promise<T> {

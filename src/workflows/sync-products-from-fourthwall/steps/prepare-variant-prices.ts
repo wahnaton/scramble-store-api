@@ -5,8 +5,8 @@ import { ContainerRegistrationKeys } from '@medusajs/framework/utils'
 
 export type PrepareVariantPricesInput = {
   fourthwallProducts: FourthwallProduct[]
-  products: ProductDTO[]
-  externalVariantIdToVariantIdMap: Record<string, string>
+  medusaProducts: ProductDTO[]
+  fourthwallVariantIdToMedusaVariantIdMap: Record<string, string>
 }
 
 export type PrepareVariantPricesOutput = {
@@ -24,37 +24,46 @@ export const prepareVariantPricesStep = createStep(
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const remoteQuery = container.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
 
-    const productByExternalId = new Map(input.products.map((p: ProductDTO) => [p.external_id, p]))
+    const medusaProductByFourthwallId = new Map(
+      input.medusaProducts.map((product: ProductDTO) => [product.external_id, product]),
+    )
 
-    const entries: PrepareVariantPricesOutput['variantPrices'] = []
+    const medusaVariantPriceEntries: PrepareVariantPricesOutput['variantPrices'] = []
 
-    for (const fwProduct of input.fourthwallProducts) {
-      const medusaProduct = productByExternalId.get(fwProduct.id)
+    for (const fourthwallProduct of input.fourthwallProducts) {
+      const medusaProduct = medusaProductByFourthwallId.get(fourthwallProduct.id)
       if (!medusaProduct) continue
-      const variants = medusaProduct.variants || []
-      const variantByExternalId = new Map(
-        variants.map((variant) => [variant?.metadata?.external_id, variant]),
+      const medusaVariants = medusaProduct.variants || []
+      const medusaVariantByFourthwallId = new Map(
+        medusaVariants.map((medusaVariant) => [medusaVariant?.metadata?.external_id, medusaVariant]),
       )
 
-      for (const fwVariant of fwProduct.variants) {
-        const mappedVariantId = input.externalVariantIdToVariantIdMap[fwVariant.id]
-        const medusaVariantId = mappedVariantId || variantByExternalId.get(fwVariant.id)?.id
+      for (const fourthwallVariant of fourthwallProduct.variants || []) {
+        const existingMedusaVariantId =
+          input.fourthwallVariantIdToMedusaVariantIdMap[fourthwallVariant.id]
+        const medusaVariantId =
+          existingMedusaVariantId || medusaVariantByFourthwallId.get(fourthwallVariant.id)?.id
         if (!medusaVariantId) continue
 
-        const unitPrice = fwVariant?.unitPrice
-        const value = unitPrice?.value
-        const currency = (unitPrice?.currency || 'USD').toString().toLowerCase()
+        const fourthwallVariantPriceValue = fourthwallVariant?.unitPrice?.value ?? fourthwallVariant?.price
+        const currency = (
+          fourthwallVariant?.unitPrice?.currency ??
+          fourthwallProduct.currency ??
+          'USD'
+        )
+          .toString()
+          .toLowerCase()
 
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
+        if (typeof fourthwallVariantPriceValue !== 'number' || !Number.isFinite(fourthwallVariantPriceValue)) {
           logger.warn(
-            `[sync] skipping price upsert for variant ${fwVariant.id} (${fwVariant.title}) on product ${fwProduct.id} due to missing unitPrice`,
+            `[sync] skipping price upsert for Fourthwall variant ${fourthwallVariant.id} (${fourthwallVariant.name}) on product ${fourthwallProduct.id} due to missing unitPrice`,
           )
           continue
         }
 
-        const amount = Math.round(value * 100)
+        const amount = Math.round(fourthwallVariantPriceValue * 100)
 
-        entries.push({
+        medusaVariantPriceEntries.push({
           variant_id: medusaVariantId,
           product_id: medusaProduct.id,
           prices: [
@@ -68,24 +77,24 @@ export const prepareVariantPricesStep = createStep(
     }
 
     // Only treat variants as "previous" if they already have a price set link
-    const variantIds = entries.map((e) => e.variant_id)
+    const medusaVariantIds = medusaVariantPriceEntries.map((entry) => entry.variant_id)
     let previousVariantIds: string[] = []
-    if (variantIds.length) {
-      const links = await remoteQuery({
+    if (medusaVariantIds.length) {
+      const variantPriceLinks = await remoteQuery({
         entryPoint: 'product_variant_price_set',
         fields: ['variant_id'],
-        variables: { filters: { variant_id: variantIds } },
+        variables: { filters: { variant_id: medusaVariantIds } },
       })
-      const linkedIds = new Set<string>(links.map((l) => l.variant_id))
-      previousVariantIds = variantIds.filter((id) => linkedIds.has(id))
+      const linkedVariantIds = new Set<string>(variantPriceLinks.map((link) => link.variant_id))
+      previousVariantIds = medusaVariantIds.filter((variantId) => linkedVariantIds.has(variantId))
     }
 
     logger.info(
-      `[sync] prepared prices for ${entries.length} variants, previousVariantIds: ${previousVariantIds.length}`,
+      `[sync] prepared prices for ${medusaVariantPriceEntries.length} Medusa variants sourced from Fourthwall data, previousVariantIds: ${previousVariantIds.length}`,
     )
 
     return new StepResponse<PrepareVariantPricesOutput>({
-      variantPrices: entries,
+      variantPrices: medusaVariantPriceEntries,
       previousVariantIds,
     })
   },

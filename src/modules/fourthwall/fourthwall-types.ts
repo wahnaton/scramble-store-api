@@ -19,7 +19,7 @@ export interface FourthwallCollectionsResponse {
   paging: FourthwallPaging
 }
 
-export interface FourthwallApiVariant {
+export interface FourthwallVariant {
   id: string
   name: string
   unitPrice?: { value?: number; currency?: string }
@@ -33,7 +33,7 @@ export interface FourthwallApiVariant {
   }
 }
 
-export interface FourthwallApiProduct {
+export interface FourthwallProduct {
   id: string
   name: string
   description?: string
@@ -41,31 +41,9 @@ export interface FourthwallApiProduct {
   currency?: string
   thumbnailImage?: { url?: string; transformedUrl?: string }
   images?: { url?: string }[]
-  variants?: FourthwallApiVariant[]
+  variants?: FourthwallVariant[]
 }
 
 export interface FourthwallCollectionProductsResponse {
-  results: FourthwallApiProduct[]
-}
-
-export interface FourthwallVariant {
-  id: string
-  title: string
-  // Source of truth for selling price on Fourthwall
-  unitPrice: { value: number; currency: string }
-  sku?: string
-  availableForSale?: boolean
-  colorName?: string
-  colorSwatch?: string
-  sizeName?: string
-}
-
-export interface FourthwallProduct {
-  id: string
-  title: string
-  description?: string
-  handle?: string
-  thumbnail?: string
-  images?: { url: string }[]
-  variants: FourthwallVariant[]
+  results: FourthwallProduct[]
 }

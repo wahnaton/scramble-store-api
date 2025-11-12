@@ -7,8 +7,8 @@ export const fetchFourthwallProductsStep = createStep(
   async (_, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const fourthwallModule = container.resolve<IFourthwallModuleService>(FOURTHWALL_MODULE)
-    const products = await fourthwallModule.retrieveProducts()
-    logger.info(`[sync] fetched ${products.length} fourthwall products`)
-    return new StepResponse(products)
+    const fourthwallProducts = await fourthwallModule.retrieveProducts()
+    logger.info(`[sync] fetched ${fourthwallProducts.length} fourthwall products`)
+    return new StepResponse(fourthwallProducts)
   },
 )

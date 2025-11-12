@@ -2,58 +2,62 @@ import { ContainerRegistrationKeys, Modules } from '@medusajs/framework/utils'
 import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
 import { FourthwallProduct } from '../../../modules/fourthwall/fourthwall-types'
 
-export type MapExistingProductIdsInput = {
+export type MapFourthwallToMedusaIdsInput = {
   fourthwallProducts: FourthwallProduct[]
 }
 
-export type MapExistingProductIdsOutput = {
-  externalIdToProductIdMap: Record<string, string>
-  externalVariantIdToVariantIdMap: Record<string, string>
+export type MapFourthwallToMedusaIdsOutput = {
+  fourthwallProductIdToMedusaProductIdMap: Record<string, string>
+  fourthwallVariantIdToMedusaVariantIdMap: Record<string, string>
 }
 
-export const mapExistingProductIdsStep = createStep(
-  'map-external-id-to-product-id',
-  async (input: MapExistingProductIdsInput, { container }) => {
+export const mapFourthwallToMedusaIdsStep = createStep(
+  'map-fourthwall-to-medusa-ids',
+  async (input: MapFourthwallToMedusaIdsInput, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const productModuleService = container.resolve(Modules.PRODUCT)
-    const externalProductIds = input.fourthwallProducts.map((fw) => fw.id)
+    const fourthwallProductIds = input.fourthwallProducts.map(
+      (fourthwallProduct) => fourthwallProduct.id,
+    )
 
-    const existingProducts = await productModuleService.listProducts(
-      { external_id: externalProductIds },
+    const medusaProductsMatchingFourthwall = await productModuleService.listProducts(
+      { external_id: fourthwallProductIds },
       { select: ['id', 'external_id'] },
     )
 
-    const externalIdToProductIdMap: Record<string, string> = {}
-    for (const product of existingProducts) {
-      if (product.external_id) {
-        externalIdToProductIdMap[product.external_id] = product.id
+    const fourthwallProductIdToMedusaProductIdMap: Record<string, string> = {}
+    for (const medusaProduct of medusaProductsMatchingFourthwall) {
+      if (medusaProduct.external_id) {
+        fourthwallProductIdToMedusaProductIdMap[medusaProduct.external_id] = medusaProduct.id
       }
     }
 
-    const productIds = existingProducts.map((p) => p.id)
-    const externalVariantIdToVariantIdMap: Record<string, string> = {}
+    const medusaProductIds = medusaProductsMatchingFourthwall.map(
+      (medusaProduct) => medusaProduct.id,
+    )
+    const fourthwallVariantIdToMedusaVariantIdMap: Record<string, string> = {}
 
-    if (productIds.length) {
-      const variants = await productModuleService.listProductVariants(
-        { product_id: productIds },
+    if (medusaProductIds.length) {
+      const medusaVariants = await productModuleService.listProductVariants(
+        { product_id: medusaProductIds },
         { select: ['id', 'metadata', 'product_id'] },
       )
 
-      for (const variant of variants) {
-        const extId = variant?.metadata?.external_id
+      for (const medusaVariant of medusaVariants) {
+        const fourthwallVariantId = medusaVariant?.metadata?.external_id
 
-        if (typeof extId === 'string' && extId) {
-          externalVariantIdToVariantIdMap[extId] = variant.id
+        if (typeof fourthwallVariantId === 'string' && fourthwallVariantId) {
+          fourthwallVariantIdToMedusaVariantIdMap[fourthwallVariantId] = medusaVariant.id
         }
       }
       logger.info(
-        `[sync] mapped ${Object.keys(externalIdToProductIdMap).length} products and ${Object.keys(externalVariantIdToVariantIdMap).length} variants by external_id`,
+        `[sync] mapped ${Object.keys(fourthwallProductIdToMedusaProductIdMap).length} Fourthwall products and ${Object.keys(fourthwallVariantIdToMedusaVariantIdMap).length} Fourthwall variants to Medusa ids`,
       )
     }
 
-    return new StepResponse<MapExistingProductIdsOutput>({
-      externalIdToProductIdMap,
-      externalVariantIdToVariantIdMap,
+    return new StepResponse<MapFourthwallToMedusaIdsOutput>({
+      fourthwallProductIdToMedusaProductIdMap,
+      fourthwallVariantIdToMedusaVariantIdMap,
     })
   },
 )

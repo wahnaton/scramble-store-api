@@ -1,42 +1,48 @@
 import { ProductTypes } from '@medusajs/framework/types'
 import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
 import { FourthwallProduct } from '../../../modules/fourthwall/fourthwall-types'
-import { isHexColor, normalizeIdentity, slugify } from '../../../utils/string-utils'
+import { isHexColor, normalizeIdentity } from '../../../utils/string-utils'
 import { ContainerRegistrationKeys } from '@medusajs/framework/utils'
 
 export type NormalizeFourthwallProductsInput = {
   fourthwallProducts: FourthwallProduct[]
-  externalIdToProductIdMap: Record<string, string>
-  externalVariantIdToVariantIdMap: Record<string, string>
+  fourthwallProductIdToMedusaProductIdMap: Record<string, string>
+  fourthwallVariantIdToMedusaVariantIdMap: Record<string, string>
 }
 
 export const normalizeFourthwallProductsStep = createStep(
   'normalize-fourthwall-products',
   async (input: NormalizeFourthwallProductsInput, { container }) => {
+
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
-    const upserts: ProductTypes.UpsertProductDTO[] = input.fourthwallProducts.map((fwProduct) => {
-      const existingId = input.externalIdToProductIdMap[fwProduct.id]
-      const title = fwProduct.title ?? 'Untitled'
-      const handle = fwProduct.handle ?? slugify(title)
-      const thumbnail =
-        fwProduct.thumbnail ?? fwProduct.images?.find((image) => image.url)?.url
+    const medusaProductUpserts: ProductTypes.UpsertProductDTO[] = input.fourthwallProducts.map((fourthwallProduct) => {
+      
+      const existingMedusaProductId = input.fourthwallProductIdToMedusaProductIdMap[fourthwallProduct.id]
+      const title = fourthwallProduct.name
+      const handle = fourthwallProduct.slug
+      const thumbnail = fourthwallProduct.thumbnailImage?.transformedUrl
 
       const colorMap = new Map<string, string>()
       const sizeMap = new Map<string, string>()
       const colorSwatches: Record<string, string> = {}
 
-      for (const variant of fwProduct.variants || []) {
-        if (variant.colorName) {
-          const key = normalizeIdentity(variant.colorName)
-          if (key && !colorMap.has(key)) colorMap.set(key, variant.colorName.trim())
-          if (key && variant.colorSwatch && isHexColor(variant.colorSwatch)) {
-            colorSwatches[key] = variant.colorSwatch
+      for (const fourthwallVariant of fourthwallProduct.variants || []) {
+
+        const colorName = fourthwallVariant.attributes?.color?.name
+        const colorSwatch = fourthwallVariant.attributes?.color?.swatch
+        if (colorName) {
+          const key = normalizeIdentity(colorName)
+          if (key && !colorMap.has(key)) colorMap.set(key, colorName.trim())
+          if (key && colorSwatch && isHexColor(colorSwatch)) {
+            colorSwatches[key] = colorSwatch
           }
         }
-        if (variant.sizeName) {
-          const key = normalizeIdentity(variant.sizeName)
-          if (key && !sizeMap.has(key)) sizeMap.set(key, variant.sizeName.trim())
+
+        const sizeName = fourthwallVariant.attributes?.size?.name
+        if (sizeName) {
+          const key = normalizeIdentity(sizeName)
+          if (key && !sizeMap.has(key)) sizeMap.set(key, sizeName.trim())
         }
       }
 
@@ -45,56 +51,63 @@ export const normalizeFourthwallProductsStep = createStep(
       if (sizeMap.size) {
         options.push({ title: 'Size', values: Array.from(sizeMap.values()) })
       }
+      
       if (colorMap.size) {
         options.push({ title: 'Color', values: Array.from(colorMap.values()) })
       }
 
-      const variants: ProductTypes.UpsertProductVariantDTO[] = (fwProduct.variants || []).map(
-        (fwVariant) => {
-          const variant: ProductTypes.UpsertProductVariantDTO = {
-            id: input.externalVariantIdToVariantIdMap[fwVariant.id],
-            title: fwVariant.title ?? 'Default',
-            metadata: { external_id: fwVariant.id },
+      const medusaVariantUpserts: ProductTypes.UpsertProductVariantDTO[] = (fourthwallProduct.variants || []).map(
+        (fourthwallVariant) => {
+          const medusaVariantUpsert: ProductTypes.UpsertProductVariantDTO = {
+            id: input.fourthwallVariantIdToMedusaVariantIdMap[fourthwallVariant.id],
+            title: fourthwallVariant.name ?? 'Default',
+            metadata: { external_id: fourthwallVariant.id },
           }
-          if (fwVariant.sku) variant.sku = fwVariant.sku
 
-          const opt: Record<string, string> = {}
-          if (fwVariant.sizeName) {
-            const key = normalizeIdentity(fwVariant.sizeName)
+          if (fourthwallVariant.sku) medusaVariantUpsert.sku = fourthwallVariant.sku
+
+          const variantOptions: Record<string, string> = {}
+          const sizeName = fourthwallVariant.attributes?.size?.name
+          if (sizeName) {
+            const key = normalizeIdentity(sizeName)
             const display = key ? sizeMap.get(key) : undefined
-            if (display) opt['Size'] = display
+            if (display) variantOptions['Size'] = display
           }
-          if (fwVariant.colorName) {
-            const key = normalizeIdentity(fwVariant.colorName)
+
+          const colorName = fourthwallVariant.attributes?.color?.name
+          if (colorName) {
+            const key = normalizeIdentity(colorName)
             const display = key ? colorMap.get(key) : undefined
-            if (display) opt['Color'] = display
+            if (display) variantOptions['Color'] = display
           }
-          if (Object.keys(opt).length) {
-            variant.options = opt
+
+          if (Object.keys(variantOptions).length) {
+            medusaVariantUpsert.options = variantOptions
           }
-          return variant
+
+          return medusaVariantUpsert
         },
       )
 
       const base: ProductTypes.UpsertProductDTO = {
         title,
         handle,
-        description: fwProduct.description ?? '',
+        description: fourthwallProduct.description ?? '',
         status: 'published' as const,
         thumbnail,
-        external_id: fwProduct.id,
+        external_id: fourthwallProduct.id,
         ...(options.length ? { options } : {}),
-        variants,
+        variants: medusaVariantUpserts,
         metadata: {
-          fourthwall_handle: fwProduct.handle ?? handle,
+          fourthwall_handle: fourthwallProduct.slug ?? handle,
           ...(Object.keys(colorSwatches).length ? { color_swatches: colorSwatches } : {}),
         },
       }
 
-      return { id: existingId, ...base }
+      return { id: existingMedusaProductId, ...base }
     })
 
-    logger.info(`[sync] prepared ${upserts.length} product upserts`)
-    return new StepResponse<ProductTypes.UpsertProductDTO[]>(upserts)
+    logger.info(`[sync] prepared ${medusaProductUpserts.length} Medusa product upserts`)
+    return new StepResponse<ProductTypes.UpsertProductDTO[]>(medusaProductUpserts)
   },
 )
