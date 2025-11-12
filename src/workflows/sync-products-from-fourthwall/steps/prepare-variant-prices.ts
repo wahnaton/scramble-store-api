@@ -35,7 +35,10 @@ export const prepareVariantPricesStep = createStep(
       if (!medusaProduct) continue
       const medusaVariants = medusaProduct.variants || []
       const medusaVariantByFourthwallId = new Map(
-        medusaVariants.map((medusaVariant) => [medusaVariant?.metadata?.external_id, medusaVariant]),
+        medusaVariants.map((medusaVariant) => [
+          medusaVariant?.metadata?.external_id,
+          medusaVariant,
+        ]),
       )
 
       for (const fourthwallVariant of fourthwallProduct.variants || []) {
@@ -45,7 +48,8 @@ export const prepareVariantPricesStep = createStep(
           existingMedusaVariantId || medusaVariantByFourthwallId.get(fourthwallVariant.id)?.id
         if (!medusaVariantId) continue
 
-        const fourthwallVariantPriceValue = fourthwallVariant?.unitPrice?.value ?? fourthwallVariant?.price
+        const fourthwallVariantPriceValue =
+          fourthwallVariant?.unitPrice?.value ?? fourthwallVariant?.price
         const currency = (
           fourthwallVariant?.unitPrice?.currency ??
           fourthwallProduct.currency ??
@@ -54,7 +58,10 @@ export const prepareVariantPricesStep = createStep(
           .toString()
           .toLowerCase()
 
-        if (typeof fourthwallVariantPriceValue !== 'number' || !Number.isFinite(fourthwallVariantPriceValue)) {
+        if (
+          typeof fourthwallVariantPriceValue !== 'number' ||
+          !Number.isFinite(fourthwallVariantPriceValue)
+        ) {
           logger.warn(
             `[sync] skipping price upsert for Fourthwall variant ${fourthwallVariant.id} (${fourthwallVariant.name}) on product ${fourthwallProduct.id} due to missing unitPrice`,
           )

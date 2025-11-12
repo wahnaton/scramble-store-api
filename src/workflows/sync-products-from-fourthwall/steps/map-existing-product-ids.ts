@@ -7,8 +7,8 @@ export type MapFourthwallToMedusaIdsInput = {
 }
 
 export type MapFourthwallToMedusaIdsOutput = {
-  fourthwallProductIdToMedusaProductIdMap: Record<string, string>
-  fourthwallVariantIdToMedusaVariantIdMap: Record<string, string>
+  fourthwallProductIdToMedusaProductId: Record<string, string>
+  fourthwallVariantIdToMedusaVariantId: Record<string, string>
 }
 
 export const mapFourthwallToMedusaIdsStep = createStep(
@@ -16,26 +16,28 @@ export const mapFourthwallToMedusaIdsStep = createStep(
   async (input: MapFourthwallToMedusaIdsInput, { container }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const productModuleService = container.resolve(Modules.PRODUCT)
+
+    // Step 1. Build existing Fourthwall -> medusa product id map
+    const fourthwallProductIdToMedusaProductId: Record<string, string> = {}
+
     const fourthwallProductIds = input.fourthwallProducts.map(
       (fourthwallProduct) => fourthwallProduct.id,
     )
 
-    const medusaProductsMatchingFourthwall = await productModuleService.listProducts(
+    // Find any Fourthwall products that have already been synced to Medusa and add them to the map
+    const alreadySyncdProducts = await productModuleService.listProducts(
       { external_id: fourthwallProductIds },
       { select: ['id', 'external_id'] },
     )
 
-    const fourthwallProductIdToMedusaProductIdMap: Record<string, string> = {}
-    for (const medusaProduct of medusaProductsMatchingFourthwall) {
-      if (medusaProduct.external_id) {
-        fourthwallProductIdToMedusaProductIdMap[medusaProduct.external_id] = medusaProduct.id
-      }
+    for (const medusaProduct of alreadySyncdProducts) {
+      fourthwallProductIdToMedusaProductId[medusaProduct.external_id!] = medusaProduct.id
     }
 
-    const medusaProductIds = medusaProductsMatchingFourthwall.map(
-      (medusaProduct) => medusaProduct.id,
-    )
-    const fourthwallVariantIdToMedusaVariantIdMap: Record<string, string> = {}
+    // Step 2. Build the existing fourthwall Variant id to medusa variant id map
+    const fourthwallVariantIdToMedusaVariantId: Record<string, string> = {}
+
+    const medusaProductIds: string[] = alreadySyncdProducts.map((medusaProduct) => medusaProduct.id)
 
     if (medusaProductIds.length) {
       const medusaVariants = await productModuleService.listProductVariants(
@@ -47,17 +49,21 @@ export const mapFourthwallToMedusaIdsStep = createStep(
         const fourthwallVariantId = medusaVariant?.metadata?.external_id
 
         if (typeof fourthwallVariantId === 'string' && fourthwallVariantId) {
-          fourthwallVariantIdToMedusaVariantIdMap[fourthwallVariantId] = medusaVariant.id
+          fourthwallVariantIdToMedusaVariantId[fourthwallVariantId] = medusaVariant.id
         }
       }
+
+      const productCount = Object.keys(fourthwallProductIdToMedusaProductId).length
+      const variantCount = Object.keys(fourthwallVariantIdToMedusaVariantId).length
+
       logger.info(
-        `[sync] mapped ${Object.keys(fourthwallProductIdToMedusaProductIdMap).length} Fourthwall products and ${Object.keys(fourthwallVariantIdToMedusaVariantIdMap).length} Fourthwall variants to Medusa ids`,
+        `[sync] mapped ${productCount} Fourthwall products and ${variantCount} Fourthwall variants to Medusa ids`,
       )
     }
 
     return new StepResponse<MapFourthwallToMedusaIdsOutput>({
-      fourthwallProductIdToMedusaProductIdMap,
-      fourthwallVariantIdToMedusaVariantIdMap,
+      fourthwallProductIdToMedusaProductId: fourthwallProductIdToMedusaProductId,
+      fourthwallVariantIdToMedusaVariantId: fourthwallVariantIdToMedusaVariantId,
     })
   },
 )

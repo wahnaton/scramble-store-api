@@ -6,33 +6,32 @@ import {
 import { ProductDTO, UpsertProductDTO } from '@medusajs/types'
 import { fetchFourthwallProductsStep } from './steps/fetch-fourthwall-products'
 import { mapFourthwallToMedusaIdsStep } from './steps/map-existing-product-ids'
-import { normalizeFourthwallProductsStep } from './steps/normalize-fourthwall-products'
-import { upsertProductsStep } from './steps/upsert-products'
+import { createMedusaUpserts as createMedusaUpserts } from './steps/create-medusa-upserts'
+import { upsertMedusaProductsStep as upsertMedusaProductsStep } from './steps/upsert-medusa-products'
 import { prepareVariantPricesStep } from './steps/prepare-variant-prices'
 import { FourthwallProduct as FourthwallProduct } from '../../modules/fourthwall/fourthwall-types'
 
 export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fourthwall', () => {
-
   // Call Fourthwall API to get products
   const fourthwallProducts: FourthwallProduct[] = fetchFourthwallProductsStep()
 
-  // Map existing Medusa product and variant ids to the Fourthwall ids we sync against
+  // Map Fourthwall product and variant ids to the existing Medusa ids we sync against
   const fourthwallToMedusaIdMaps = mapFourthwallToMedusaIdsStep({ fourthwallProducts })
 
-  const fourthwallProductIdToMedusaProductIdMap =
-    fourthwallToMedusaIdMaps.fourthwallProductIdToMedusaProductIdMap
+  const fourthwallProductIdToMedusaProductIdMap: Record<string, string> =
+    fourthwallToMedusaIdMaps.fourthwallProductIdToMedusaProductId
 
-  const fourthwallVariantIdToMedusaVariantIdMap =
-    fourthwallToMedusaIdMaps.fourthwallVariantIdToMedusaVariantIdMap
+  const fourthwallVariantIdToMedusaVariantIdMap: Record<string, string> =
+    fourthwallToMedusaIdMaps.fourthwallVariantIdToMedusaVariantId
 
-  // Convert Fourthwall products to Medusa upsert payloads
-  const medusaProductUpserts: UpsertProductDTO[] = normalizeFourthwallProductsStep({
+  // Convert Fourthwall products to Medusa products
+  const medusaProductUpserts: UpsertProductDTO[] = createMedusaUpserts({
     fourthwallProducts,
     fourthwallProductIdToMedusaProductIdMap,
     fourthwallVariantIdToMedusaVariantIdMap,
   })
 
-  const medusaProducts: ProductDTO[] = upsertProductsStep({ medusaProductUpserts })
+  const medusaProducts: ProductDTO[] = upsertMedusaProductsStep({ medusaProductUpserts })
 
   // Add Fourthwall variant prices to their corresponding Medusa variants
   const variantPricePreparation = prepareVariantPricesStep({
@@ -48,6 +47,7 @@ export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fou
     },
   })
 
+  // Add Fourthwall variant images to their corresponding Medusa variants
   // const variantImages: // Some step that returns this type BatchImageVariantsWorkflowInput
   // batchImageVariantsWorkflow.runAsStep({
   //   input: { variantImages },
@@ -60,8 +60,8 @@ export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fou
     data.medusaProducts.map((product: ProductDTO) => product.id),
   )
 
-  // Idempotent so we can just run it on everything
-  // Consider changing in the future if thousands of products or getting throttled
+  // Sales channel is required for Medusa Products
+  // Idempotent so run on everything but change if thousands of products or getting throttled
   linkProductsToSalesChannelWorkflow.runAsStep({
     input: { id: defaultSalesChannelId, add: medusaProductIds },
   })
