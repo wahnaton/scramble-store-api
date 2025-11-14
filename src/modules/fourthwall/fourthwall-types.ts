@@ -23,7 +23,6 @@ export interface FourthwallVariant {
   id: string
   name: string
   unitPrice?: { value?: number; currency?: string }
-  price?: number
   compareAtPrice?: number | null
   sku?: string
   availableForSale?: boolean
@@ -38,7 +37,6 @@ export interface FourthwallProduct {
   name: string
   description?: string
   slug?: string
-  currency?: string
   thumbnailImage?: { url?: string; transformedUrl?: string }
   images?: { url?: string }[]
   variants?: FourthwallVariant[]

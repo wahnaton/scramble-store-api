@@ -8,7 +8,7 @@ import { fetchFourthwallProductsStep } from './steps/fetch-fourthwall-products'
 import { mapFourthwallToMedusaIdsStep } from './steps/map-existing-product-ids'
 import { createMedusaUpserts as createMedusaUpserts } from './steps/create-medusa-upserts'
 import { upsertMedusaProductsStep as upsertMedusaProductsStep } from './steps/upsert-medusa-products'
-import { prepareVariantPricesStep } from './steps/prepare-variant-prices'
+import { createVariantPriceUpsertsStep } from './steps/create-variant-price-upserts'
 import { FourthwallProduct as FourthwallProduct } from '../../modules/fourthwall/fourthwall-types'
 
 export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fourthwall', () => {
@@ -34,7 +34,7 @@ export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fou
   const medusaProducts: ProductDTO[] = upsertMedusaProductsStep({ medusaProductUpserts })
 
   // Add Fourthwall variant prices to their corresponding Medusa variants
-  const variantPricePreparation = prepareVariantPricesStep({
+  const variantPricePreparation = createVariantPriceUpsertsStep({
     fourthwallProducts,
     medusaProducts,
     fourthwallVariantIdToMedusaVariantIdMap,
