@@ -1,34 +1,31 @@
 import { ProductDTO, ProductVariantDTO } from '@medusajs/types'
 
-export type FourthwallProductIdToMedusaProductMap = Map<string, ProductDTO>
-export type FourthwallVariantIdToMedusaVariantMap = Map<string, ProductVariantDTO>
-
 export const createFourthwallProductIdToMedusaProductMap = (
   medusaProducts: ProductDTO[],
-): FourthwallProductIdToMedusaProductMap => {
-  const map: FourthwallProductIdToMedusaProductMap = new Map()
+): Map<string, ProductDTO> => {
+  const fourthwallProductIdToMedusaProductMap: Map<string, ProductDTO> = new Map()
 
   for (const product of medusaProducts) {
     if (product.external_id) {
-      map.set(product.external_id, product)
+      fourthwallProductIdToMedusaProductMap.set(product.external_id, product)
     }
   }
 
-  return map
+  return fourthwallProductIdToMedusaProductMap
 }
 
 export const createFourthwallVariantIdToMedusaVariantMap = (
   medusaVariants: ProductVariantDTO[] | undefined,
-): FourthwallVariantIdToMedusaVariantMap => {
-  const map: FourthwallVariantIdToMedusaVariantMap = new Map()
+): Map<string, ProductVariantDTO> => {
+  const fourthwallVariantIdToMedusaVariantMap: Map<string, ProductVariantDTO> = new Map()
 
   for (const variant of medusaVariants || []) {
     const fourthwallVariantId = variant?.metadata?.external_id
 
     if (variant && typeof fourthwallVariantId === 'string' && fourthwallVariantId) {
-      map.set(fourthwallVariantId, variant)
+      fourthwallVariantIdToMedusaVariantMap.set(fourthwallVariantId, variant)
     }
   }
 
-  return map
+  return fourthwallVariantIdToMedusaVariantMap
 }

@@ -65,9 +65,9 @@ const extractVariantAttributes = (variants: FourthwallVariant[]) => {
 
   // Extract unique colors and sizes from variants
   for (const fourthwallVariant of variants) {
-    const colorSwatch = fourthwallVariant.attributes?.color?.swatch
+    const colorSwatch = fourthwallVariant.attributes.color?.swatch
 
-    const colorName = fourthwallVariant.attributes?.color?.name
+    const colorName = fourthwallVariant.attributes.color?.name
     if (colorName) {
       const key = sanitizeString(colorName)
       if (key && !colorMap.has(key)) {
@@ -118,7 +118,7 @@ const buildVariantUpserts = (
   for (const fourthwallVariant of variants || []) {
     const medusaVariantUpsert: ProductTypes.UpsertProductVariantDTO = {
       id: variantIdMap[fourthwallVariant.id],
-      title: fourthwallVariant.name ?? 'Default',
+      title: fourthwallVariant.name,
       metadata: { external_id: fourthwallVariant.id },
     }
 
@@ -128,7 +128,7 @@ const buildVariantUpserts = (
 
     const variantOptions: Record<string, string> = {}
 
-    const sizeName = fourthwallVariant.attributes?.size?.name
+    const sizeName = fourthwallVariant.attributes.size?.name
     if (sizeName) {
       const key = sanitizeString(sizeName)
       const display = key ? sizeMap.get(key) : undefined
@@ -137,7 +137,7 @@ const buildVariantUpserts = (
       }
     }
 
-    const colorName = fourthwallVariant.attributes?.color?.name
+    const colorName = fourthwallVariant.attributes.color?.name
     if (colorName) {
       const key = sanitizeString(colorName)
       const display = key ? colorMap.get(key) : undefined

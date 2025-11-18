@@ -53,10 +53,10 @@ export const createVariantPriceUpsertsStep = createStep(
           continue
         }
 
-        const fourthwallVariantPriceValue = fourthwallVariant?.unitPrice?.value
-        const currency = (fourthwallVariant?.unitPrice?.currency ?? 'USD').toString().toLowerCase()
+        const fourthwallVariantPriceValue = fourthwallVariant.unitPrice.value
+        const currency = (fourthwallVariant.unitPrice.currency).toString().toLowerCase()
 
-        const amount = Math.round(fourthwallVariantPriceValue! * 100)
+        const amount = Math.round(fourthwallVariantPriceValue * 100)
 
         medusaVariantPriceEntries.push({
           variant_id: medusaVariantId,

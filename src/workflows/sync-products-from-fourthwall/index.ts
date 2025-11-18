@@ -2,6 +2,7 @@ import { createWorkflow, transform, WorkflowResponse } from '@medusajs/framework
 import {
   linkProductsToSalesChannelWorkflow,
   upsertVariantPricesWorkflow,
+  batchImageVariantsWorkflow,
 } from '@medusajs/medusa/core-flows'
 import { ProductDTO, UpsertProductDTO } from '@medusajs/types'
 import { fetchFourthwallProductsStep } from './steps/fetch-fourthwall-products'
@@ -10,6 +11,9 @@ import { createMedusaUpserts as createMedusaUpserts } from './steps/create-medus
 import { upsertMedusaProductsStep as upsertMedusaProductsStep } from './steps/upsert-medusa-products'
 import { createVariantPriceUpsertsStep } from './steps/create-variant-price-upserts'
 import { FourthwallProduct as FourthwallProduct } from '../../modules/fourthwall/fourthwall-types'
+import { prepareMedusaImagePayloadsStep } from './steps/prepare-medusa-image-payloads'
+import { createMedusaImagesStep } from './steps/create-medusa-images'
+import { buildVariantImageLinksStep } from './steps/build-variant-image-links'
 
 export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fourthwall', () => {
   // Call Fourthwall API to get products
@@ -47,11 +51,33 @@ export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fou
     },
   })
 
-  // Add Fourthwall variant images to their corresponding Medusa variants
-  // const variantImages: // Some step that returns this type BatchImageVariantsWorkflowInput
-  // batchImageVariantsWorkflow.runAsStep({
-  //   input: { variantImages },
-  // })
+  // Prepare per-product image payloads
+  const imagePayloads = prepareMedusaImagePayloadsStep({
+    fourthwallProducts,
+    fourthwallProductIdToMedusaProductIdMap,
+  })
+
+  // Ensure Medusa images exist and map urls -> image ids (idempotent)
+  const medusaImageMap = createMedusaImagesStep({
+    medusaProducts,
+    imagePayloads,
+  })
+
+  // Build map directly from Fourthwall variants to Medusa image ids
+  const variantImageLinks = buildVariantImageLinksStep({
+    fourthwallProducts,
+    medusaProducts,
+    medusaImageMap,
+  })
+
+  for (const link of variantImageLinks.links) {
+    batchImageVariantsWorkflow.runAsStep({
+      input: {
+        image_id: link.imageId,
+        add: link.variantIds,
+      },
+    })
+  }
 
   // Always use default sales channel for sync
   const defaultSalesChannelId = 'sc_01K05XJND67JDXJY7DS38Y03TE'
