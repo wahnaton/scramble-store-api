@@ -1,3 +1,4 @@
+import { Modules } from '@medusajs/framework/utils'
 import { createStep, StepResponse } from '@medusajs/framework/workflows-sdk'
 import { ProductDTO, ProductImageDTO } from '@medusajs/types'
 import { IProductModuleService } from '@medusajs/framework/types'
@@ -16,7 +17,7 @@ export const createMedusaImagesStep = createStep(
   ): Promise<StepResponse<CreateMedusaImagesOutput>> => {
     const logger = container.resolve('logger')
 
-    const productModule = container.resolve<IProductModuleService>('productModule')
+    const productModule = container.resolve<IProductModuleService>(Modules.PRODUCT)
 
     const medusaProductById = new Map(input.medusaProducts.map((p) => [p.id, p]))
 
@@ -26,7 +27,6 @@ export const createMedusaImagesStep = createStep(
     const urlToMedusaImageId: Record<string, string> = {}
 
     for (const [medusaProductId, urls] of Object.entries(input.imagePayloads)) {
-
       const existingImages: ProductImageDTO[] = medusaProductById.get(medusaProductId)?.images || []
       const existingByUrl = new Map((existingImages || []).map((img) => [img.url, img.id]))
 
@@ -47,12 +47,13 @@ export const createMedusaImagesStep = createStep(
           const imageId = updatedImages.find((img) => img.url === url)?.id || existingByUrl.get(url)
 
           if (!imageId) {
-            throw new Error(`Failed to resolve image id for URL ${url} on product ${medusaProductId}`)
+            throw new Error(
+              `Failed to resolve image id for URL ${url} on product ${medusaProductId}`,
+            )
           }
-          
+
           urlToMedusaImageId[url] = imageId
         }
-
       } catch (err) {
         logger.error(`Failed to process images for product ${medusaProductId}`, err)
       }

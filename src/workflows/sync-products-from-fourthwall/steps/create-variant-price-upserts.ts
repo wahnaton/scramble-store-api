@@ -54,7 +54,7 @@ export const createVariantPriceUpsertsStep = createStep(
         }
 
         const fourthwallVariantPriceValue = fourthwallVariant.unitPrice.value
-        const currency = (fourthwallVariant.unitPrice.currency).toString().toLowerCase()
+        const currency = fourthwallVariant.unitPrice.currency.toString().toLowerCase()
 
         const amount = Math.round(fourthwallVariantPriceValue * 100)
 

@@ -2,7 +2,6 @@ import { createWorkflow, transform, WorkflowResponse } from '@medusajs/framework
 import {
   linkProductsToSalesChannelWorkflow,
   upsertVariantPricesWorkflow,
-  batchImageVariantsWorkflow,
 } from '@medusajs/medusa/core-flows'
 import { ProductDTO, UpsertProductDTO } from '@medusajs/types'
 import { fetchFourthwallProductsStep } from './steps/fetch-fourthwall-products'
@@ -13,7 +12,8 @@ import { createVariantPriceUpsertsStep } from './steps/create-variant-price-upse
 import { FourthwallProduct as FourthwallProduct } from '../../modules/fourthwall/fourthwall-types'
 import { prepareMedusaImagePayloadsStep } from './steps/prepare-medusa-image-payloads'
 import { createMedusaImagesStep } from './steps/create-medusa-images'
-import { buildVariantImageLinksStep } from './steps/build-variant-image-links'
+import { buildVariantImageIdsStep } from './steps/build-variant-image-ids'
+import { updateVariantImageStep as updateVariantImagesStep } from './steps/update-variant-images'
 
 export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fourthwall', () => {
   // Call Fourthwall API to get products
@@ -63,21 +63,15 @@ export const syncProductsFromFourthwall = createWorkflow('sync-products-from-fou
     imagePayloads,
   })
 
-  // Build map directly from Fourthwall variants to Medusa image ids
-  const variantImageLinks = buildVariantImageLinksStep({
+  // Map image ids to variant ids
+  const variantImageIds = buildVariantImageIdsStep({
     fourthwallProducts,
     medusaProducts,
     medusaImageMap,
   })
 
-  for (const link of variantImageLinks.links) {
-    batchImageVariantsWorkflow.runAsStep({
-      input: {
-        image_id: link.imageId,
-        add: link.variantIds,
-      },
-    })
-  }
+  // Sync images to Medusa variants
+  updateVariantImagesStep({ imageIds: variantImageIds.imageIds })
 
   // Always use default sales channel for sync
   const defaultSalesChannelId = 'sc_01K05XJND67JDXJY7DS38Y03TE'

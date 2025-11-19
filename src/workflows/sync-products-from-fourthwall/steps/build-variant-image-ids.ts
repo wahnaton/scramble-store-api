@@ -7,39 +7,37 @@ import {
   createFourthwallVariantIdToMedusaVariantMap,
 } from '../utils/variant-mapping'
 
-export type ImageVariantLink = {
+export type VariantImageIdMap = {
   imageId: string
   variantIds: string[]
 }
 
-export type BuildVariantImageLinksInput = {
+export type BuildVariantImageIdsInput = {
   fourthwallProducts: FourthwallProduct[]
   medusaProducts: ProductDTO[]
   medusaImageMap: Record<string, string>
 }
 
-export type BuildVariantImageLinksOutput = {
-  links: ImageVariantLink[]
+export type BuildVariantImageIdsOutput = {
+  imageIds: VariantImageIdMap[]
 }
 
-export const buildVariantImageLinksStep = createStep(
-  'build-variant-image-links',
-  (
-    input: BuildVariantImageLinksInput,
-    { container },
-  ): StepResponse<BuildVariantImageLinksOutput> => {
+export const buildVariantImageIdsStep = createStep(
+  'build-variant-image-ids',
+  (input: BuildVariantImageIdsInput, { container }): StepResponse<BuildVariantImageIdsOutput> => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
-    const fourthwallIdToMedusaProduct: Map<string, ProductDTO> = createFourthwallProductIdToMedusaProductMap(
-      input.medusaProducts,
-    )
+    const fourthwallIdToMedusaProduct: Map<string, ProductDTO> =
+      createFourthwallProductIdToMedusaProductMap(input.medusaProducts)
 
     const medusaImageIdToVariantIds = new Map<string, Set<string>>()
 
     for (const fourthwallProduct of input.fourthwallProducts) {
       const medusaProduct = fourthwallIdToMedusaProduct.get(fourthwallProduct.id)
       if (!medusaProduct) {
-        logger.warn(`[sync] No Medusa product for Fourthwall product ${fourthwallProduct.id}; skipping images`)
+        logger.warn(
+          `[sync] No Medusa product for Fourthwall product ${fourthwallProduct.id}; skipping images`,
+        )
         continue
       }
 
@@ -71,18 +69,18 @@ export const buildVariantImageLinksStep = createStep(
       }
     }
 
-    const links: ImageVariantLink[] = []
+    const imageIds: VariantImageIdMap[] = []
     for (const [imageId, variantIds] of medusaImageIdToVariantIds.entries()) {
-      links.push({
+      imageIds.push({
         imageId,
         variantIds: Array.from(variantIds),
       })
     }
 
     logger.info(
-      `[sync] prepared ${links.length} image↔variant links from ${input.fourthwallProducts.length} products`,
+      `[sync] prepared ${imageIds.length} image↔variant ids from ${input.fourthwallProducts.length} products`,
     )
 
-    return new StepResponse({ links })
+    return new StepResponse({ imageIds })
   },
 )
